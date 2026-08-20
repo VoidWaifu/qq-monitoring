@@ -6,18 +6,18 @@
     <title>Uptime Monitoring</title>
     <style>
         :root {
-            --tg-theme-bg-color: #18222d;
-            --tg-theme-secondary-bg-color: #1c2733;
-            --tg-theme-text-color: #ffffff;
-            --tg-theme-hint-color: #a1aab3;
-            --tg-theme-link-color: #6ab3f3;
-            --tg-theme-button-color: #2ea6ff;
+            --tg-theme-bg-color: #18211b;
+            --tg-theme-secondary-bg-color: #1e2822;
+            --tg-theme-text-color: #e4e9e5;
+            --tg-theme-hint-color: #9aac9f;
+            --tg-theme-link-color: #8ab89a;
+            --tg-theme-button-color: #3f6e52;
             --tg-theme-button-text-color: #ffffff;
-            --tg-theme-header-bg-color: #1c2733;
-            --delete-color: #e53935;
-            --success-color: #4caf50;
-            --danger-color: #f44336;
-            --warning-color: #ff9800;
+            --tg-theme-header-bg-color: #1e2822;
+            --delete-color: #c85a5a;
+            --success-color: #5fae6e;
+            --danger-color: #d16565;
+            --warning-color: #d69f4f;
             --safe-area-inset-top: env(safe-area-inset-top);
             --safe-area-inset-bottom: env(safe-area-inset-bottom);
         }
@@ -37,12 +37,31 @@
         }
         .header h1 {
             font-size: 18px; font-weight: 600;
+            margin-right: auto;
         }
-        .add-btn {
-            background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color);
-            border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer;
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
         }
-        .add-btn:active { opacity: 0.8; }
+        .nav-btn {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--tg-theme-text-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .nav-btn.active {
+            background: var(--tg-theme-button-color);
+            border-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+        }
+        .nav-btn:active {
+            background: rgba(255,255,255,0.12);
+        }
         .content {
             flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px;
         }
@@ -150,12 +169,37 @@
             font-size: 15px; text-align: center; margin-bottom: 20px; line-height: 1.4;
         }
         .latency-text { font-size: 13px; color: var(--tg-theme-hint-color); margin-top: 0; }
+
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 50;
+        }
+        .fab:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Мониторинг</h1>
-        <button class="add-btn" id="addResourceBtn">+ Добавить</button>
+        <div class="nav-buttons">
+            <a class="nav-btn" id="publicPagesBtn" href="https://voidwaifu.github.io/uptime-monitoring/MiniApp/public">Публичные страницы</a>
+            <button class="nav-btn active" id="myServicesBtn">Мои сервисы</button>
+        </div>
     </div>
     <div class="content" id="content">
         <div class="empty-state">
@@ -163,6 +207,8 @@
             <div class="empty-text">Загрузка...</div>
         </div>
     </div>
+
+    <button class="fab" id="addResourceFab">+</button>
 
     <div class="modal-overlay" id="resourceModal">
         <div class="modal">
@@ -546,7 +592,7 @@
             }
         });
 
-        document.getElementById('addResourceBtn').addEventListener('click', openAddModal);
+        document.getElementById('addResourceFab').addEventListener('click', openAddModal);
         cancelResourceBtn.addEventListener('click', closeResourceModal);
         saveResourceBtn.addEventListener('click', saveResource);
         resourceModal.addEventListener('click', (e) => { if (e.target === resourceModal) closeResourceModal(); });
