@@ -7,24 +7,26 @@
     <link rel="icon" type="image/png" href="../assets/icon.png">
     <style>
         * { margin:0; padding:0; box-sizing:border-box; max-width:100%; }
-        :root {
-            --bg-primary: #18211b;
-            --bg-secondary: #1e2822;
-            --text-primary: #e4e9e5;
-            --text-secondary: #9aac9f;
-            --accent: #3f6e52;
-            --accent-hover: #355c43;
-            --success: #5fae6e;
-            --danger: #d16565;
-            --warning: #d69f4f;
-            --border: #2c3a31;
-            --shadow: rgba(0,0,0,0.4);
-        }
         html, body { max-width:100%; overflow-x:hidden; }
+
+        /* ===== Публичная страница (синяя) ===== */
+        :root {
+            --public-bg-primary: #18222d;
+            --public-bg-secondary: #1c2733;
+            --public-text-primary: #ffffff;
+            --public-text-secondary: #a1aab3;
+            --public-accent: #2ea6ff;
+            --public-accent-hover: #1d8fe0;
+            --public-success: #4caf50;
+            --public-danger: #f44336;
+            --public-warning: #ff9800;
+            --public-border: #2c3a45;
+            --public-shadow: rgba(0,0,0,0.4);
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            background: var(--public-bg-primary);
+            color: var(--public-text-primary);
             line-height: 1.6;
             display: flex;
             flex-direction: column;
@@ -38,122 +40,80 @@
         }
         main { flex:1; padding: 2rem 0; }
 
-        #publicStatus {
-            display: none;
-        }
+        #publicStatus { display: none; }
         .public-card {
-            background: var(--bg-secondary);
+            background: var(--public-bg-secondary);
             border-radius: 16px;
             padding: 2rem;
             margin-top: 2rem;
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 30px var(--shadow);
+            border: 1px solid var(--public-border);
+            box-shadow: 0 8px 30px var(--public-shadow);
         }
-        .public-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+        .public-header { text-align: center; margin-bottom: 2rem; }
         .public-title {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            word-break: break-word;
+            font-size: 2.2rem; font-weight: 700;
+            color: var(--public-text-primary); word-break: break-word;
         }
         .public-description {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-            white-space: pre-wrap;
+            font-size: 1.1rem; color: var(--public-text-secondary);
+            margin-top: 0.5rem; white-space: pre-wrap;
         }
         .status-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 1rem 0;
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; margin: 1rem 0;
         }
-        .status-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-        }
-        .status-dot.online { background: var(--success); box-shadow: 0 0 10px var(--success); }
-        .status-dot.offline { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-        .status-dot.unknown { background: var(--warning); box-shadow: 0 0 10px var(--warning); }
-        .status-text {
-            font-size: 1.2rem;
-            font-weight: 600;
-        }
+        .status-dot { width: 14px; height: 14px; border-radius: 50%; }
+        .status-dot.online { background: var(--public-success); box-shadow: 0 0 10px var(--public-success); }
+        .status-dot.offline { background: var(--public-danger); box-shadow: 0 0 10px var(--public-danger); }
+        .status-dot.unknown { background: var(--public-warning); box-shadow: 0 0 10px var(--public-warning); }
+        .status-text { font-size: 1.2rem; font-weight: 600; }
         .public-info {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            margin-top: 1.5rem;
+            display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 1.5rem;
         }
         .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 8px;
-            font-size: 0.95rem;
+            display: flex; justify-content: space-between;
+            padding: 12px 16px; background: rgba(255,255,255,0.03);
+            border-radius: 8px; font-size: 0.95rem;
             border: 1px solid rgba(255,255,255,0.05);
         }
-        .info-label {
-            color: var(--text-secondary);
-        }
+        .info-label { color: var(--public-text-secondary); }
         .info-value {
-            color: var(--text-primary);
-            font-weight: 500;
-            word-break: break-all;
-            text-align: right;
-            margin-left: 10px;
+            color: var(--public-text-primary); font-weight: 500;
+            word-break: break-all; text-align: right; margin-left: 10px;
         }
         .uptime-stats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-top: 1.5rem;
-            justify-content: center;
+            display: flex; flex-wrap: wrap; gap: 15px;
+            margin-top: 1.5rem; justify-content: center;
         }
         .uptime-block {
-            background: rgba(255,255,255,0.03);
-            padding: 15px 20px;
-            border-radius: 12px;
-            text-align: center;
-            min-width: 140px;
+            background: rgba(255,255,255,0.03); padding: 15px 20px;
+            border-radius: 12px; text-align: center; min-width: 140px;
             border: 1px solid rgba(255,255,255,0.05);
         }
-        .uptime-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-        .uptime-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
+        .uptime-value { font-size: 1.6rem; font-weight: 700; color: var(--public-accent); }
+        .uptime-label { font-size: 0.85rem; color: var(--public-text-secondary); }
 
+        /* ===== 404 (фиолетовая, как в исходнике) ===== */
         .glitch-overlay { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; animation:glitch-overlay 5s infinite; mix-blend-mode:overlay; }
         .scanlines { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%); background-size:100% 4px; pointer-events:none; z-index:9998; opacity:0.4; animation:scanlines 0.3s linear infinite; }
         .noise { position:fixed; top:0; left:0; width:100%; height:100%; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); pointer-events:none; z-index:9997; opacity:0.2; animation:noise 0.1s infinite; }
         .flicker { animation:flicker 8s infinite; }
-        a { color:var(--accent); text-decoration:none; transition:color 0.3s ease; }
-        a:hover { color:var(--accent-hover); }
+        a { color: #bb86fc; text-decoration:none; transition:color 0.3s ease; }
+        a:hover { color: #9d65d0; }
         .error-container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:2rem; position:relative; width:100%; }
-        .error-code { font-size:8rem; font-weight:900; color:var(--accent); margin-bottom:1rem; position:relative; text-shadow:0 0 10px var(--accent); animation:glitch 2s infinite; }
+        .error-code { font-size:8rem; font-weight:900; color:#bb86fc; margin-bottom:1rem; position:relative; text-shadow:0 0 10px #bb86fc; animation:glitch 2s infinite; }
         .error-code::before, .error-code::after { content:"404"; position:absolute; top:0; left:0; width:100%; height:100%; }
         .error-code::before { animation:glitch-1 0.5s infinite; color:#ff0080; z-index:-1; }
         .error-code::after { animation:glitch-2 0.5s infinite; color:#00ffff; z-index:-2; }
-        .error-title { font-size:2rem; color:var(--text-primary); margin-bottom:1.5rem; position:relative; }
-        .error-message { font-size:1.2rem; color:var(--text-secondary); max-width:600px; margin:0 auto 2rem; line-height:1.6; }
-        .error-explanation { background-color:var(--bg-secondary); padding:1.5rem; border-radius:10px; border:1px solid var(--border); max-width:600px; margin:0 auto 2rem; font-size:0.9rem; color:var(--text-secondary); position:relative; z-index:2; }
-        .home-link { display:inline-block; background-color:var(--accent); color:var(--bg-primary); padding:1rem 2rem; border-radius:8px; font-weight:600; transition:all 0.3s ease; margin-top:1rem; position:relative; overflow:hidden; z-index:2; }
-        .home-link:hover { background-color:var(--accent-hover); transform:translateY(-2px); box-shadow:0 5px 15px var(--shadow); color:var(--bg-primary); }
+        .error-title { font-size:2rem; color:#e0e0e0; margin-bottom:1.5rem; position:relative; }
+        .error-message { font-size:1.2rem; color:#a0a0a0; max-width:600px; margin:0 auto 2rem; line-height:1.6; }
+        .error-explanation { background-color:#1e1e1e; padding:1.5rem; border-radius:10px; border:1px solid #333; max-width:600px; margin:0 auto 2rem; font-size:0.9rem; color:#a0a0a0; position:relative; z-index:2; }
+        .home-link { display:inline-block; background-color:#bb86fc; color:#121212; padding:1rem 2rem; border-radius:8px; font-weight:600; transition:all 0.3s ease; margin-top:1rem; position:relative; overflow:hidden; z-index:2; }
+        .home-link:hover { background-color:#9d65d0; transform:translateY(-2px); box-shadow:0 5px 15px rgba(0,0,0,0.5); color:#121212; }
         .glitch-artifact { position:absolute; pointer-events:none; z-index:9999; opacity:0; }
-        .artifact-line { height:2px; background:var(--accent); animation:artifact-line 8s infinite; box-shadow:0 0 10px var(--accent); }
-        .artifact-dot { background:var(--accent); border-radius:50%; animation:artifact-dot 6s infinite; box-shadow:0 0 10px var(--accent); }
-        .artifact-text { font-size:18px; color:var(--accent); font-weight:bold; animation:artifact-text 12s infinite; text-shadow:0 0 8px var(--accent); font-family:'Courier New', monospace; }
+        .artifact-line { height:2px; background:#bb86fc; animation:artifact-line 8s infinite; box-shadow:0 0 10px #bb86fc; }
+        .artifact-dot { background:#bb86fc; border-radius:50%; animation:artifact-dot 6s infinite; box-shadow:0 0 10px #bb86fc; }
+        .artifact-text { font-size:18px; color:#bb86fc; font-weight:bold; animation:artifact-text 12s infinite; text-shadow:0 0 8px #bb86fc; font-family:'Courier New', monospace; }
         @keyframes glitch { 0%{transform:translate(0)} 20%{transform:translate(-2px,2px)} 40%{transform:translate(-2px,-2px)} 60%{transform:translate(2px,2px)} 80%{transform:translate(2px,-2px)} 100%{transform:translate(0)} }
         @keyframes glitch-1 { 0%{transform:translate(0); opacity:0.3} 33%{transform:translate(4px,0); opacity:0.3} 66%{transform:translate(-4px,0); opacity:0.3} 100%{transform:translate(0); opacity:0.3} }
         @keyframes glitch-2 { 0%{transform:translate(0); opacity:0.3} 33%{transform:translate(0,-4px); opacity:0.3} 66%{transform:translate(0,4px); opacity:0.3} 100%{transform:translate(0); opacity:0.3} }
@@ -189,7 +149,7 @@
 </head>
 <body>
     <div id="fallback404">
-        <div class="glitch-overlay" style="background: linear-gradient(45deg, var(--accent) 0%, transparent 50%);"></div>
+        <div class="glitch-overlay" style="background: linear-gradient(45deg, #bb86fc 0%, transparent 50%);"></div>
         <div class="scanlines"></div>
         <div class="noise"></div>
 
