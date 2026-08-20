@@ -114,6 +114,9 @@
         .form-group input:focus, .form-group select:focus {
             border-color: var(--tg-theme-button-color);
         }
+        .form-group input:disabled {
+            opacity: 0.6;
+        }
         .checkbox-group {
             display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
         }
@@ -160,13 +163,12 @@
         </div>
     </div>
 
-    <!-- Модальное окно добавления/редактирования -->
     <div class="modal-overlay" id="resourceModal">
         <div class="modal">
             <div class="modal-title" id="modalTitle">Добавить ресурс</div>
             <div class="form-group">
-                <label>URL или IP</label>
-                <input type="text" id="identifierInput" placeholder="example.com или 192.168.1.1" autocomplete="off">
+                <label>URL, IP или IP:порт</label>
+                <input type="text" id="identifierInput" placeholder="example.com, 192.168.1.1, 192.168.1.1:8080" autocomplete="off">
             </div>
             <div class="form-group">
                 <label>Название (необязательно)</label>
@@ -209,7 +211,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно статистики -->
     <div class="modal-overlay" id="statsModal">
         <div class="modal">
             <div class="modal-title">Статистика</div>
@@ -220,7 +221,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно подтверждения удаления -->
     <div class="modal-overlay" id="deleteModal">
         <div class="modal">
             <div class="modal-title">Удалить ресурс?</div>
@@ -243,10 +243,9 @@
 
         const initData = tg.initData || "";
         let resources = [];
-        let editingFilename = null; // если редактируем
+        let editingFilename = null;
         let deletingFilename = null;
 
-        // DOM элементы
         const contentEl = document.getElementById('content');
         const toastEl = document.getElementById('toast');
         const resourceModal = document.getElementById('resourceModal');
@@ -351,8 +350,7 @@
                     <div class="resource-info">
                         <span class="info-tag">${formatCheckType(r.check_type)}</span>
                         <span class="info-tag">${formatInterval(r.interval_seconds)}</span>
-                        ${r.notify ? '<span class="info-tag">🔔 Уведомления</span>' : ''}
-                        ${r.last_check_time ? `<span class="info-tag">🕒 ${escapeHtml(r.last_check_time)}</span>` : ''}
+                        ${r.notify ? '<span class="info-tag">Уведомления</span>' : ''}
                     </div>
                     <div class="resource-actions">
                         <button class="action-btn check-now-btn" data-filename="${escapeHtml(r.filename)}">Проверить</button>
@@ -365,7 +363,6 @@
             });
             contentEl.innerHTML = html;
 
-            // Обработчики кнопок
             document.querySelectorAll('.check-now-btn').forEach(btn => {
                 btn.addEventListener('click', () => checkNow(btn.dataset.filename));
             });
@@ -384,6 +381,7 @@
             editingFilename = null;
             modalTitle.textContent = 'Добавить ресурс';
             identifierInput.value = '';
+            identifierInput.disabled = false;
             customNameInput.value = '';
             checkTypeSelect.value = 'http';
             intervalSelect.value = '60';
@@ -397,6 +395,7 @@
             editingFilename = filename;
             modalTitle.textContent = 'Редактировать ресурс';
             identifierInput.value = resource.identifier || '';
+            identifierInput.disabled = true;
             customNameInput.value = resource.custom_name || '';
             checkTypeSelect.value = resource.check_type || 'http';
             intervalSelect.value = String(resource.interval_seconds || 60);
@@ -424,7 +423,6 @@
                 if (editingFilename) {
                     await apiCall('/api/resources/update', {
                         filename: editingFilename,
-                        identifier,
                         custom_name,
                         check_type,
                         interval_seconds,
@@ -454,7 +452,7 @@
                 const status = result.success ? '✅ Онлайн' : '❌ Офлайн';
                 const latency = result.latency_ms !== undefined ? ` (${result.latency_ms} мс)` : '';
                 showToast(`${status}${latency}`);
-                loadResources(); // обновить список
+                loadResources();
             } catch (e) {
                 showToast('Ошибка: ' + e.message);
             }
@@ -506,7 +504,6 @@
             }
         }
 
-        // Привязка событий
         document.getElementById('addResourceBtn').addEventListener('click', openAddModal);
         cancelResourceBtn.addEventListener('click', closeResourceModal);
         saveResourceBtn.addEventListener('click', saveResource);
@@ -519,7 +516,6 @@
         confirmDeleteBtn.addEventListener('click', confirmDelete);
         deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) deleteModal.classList.remove('active'); });
 
-        // Инициализация
         loadResources();
     </script>
 </body>
