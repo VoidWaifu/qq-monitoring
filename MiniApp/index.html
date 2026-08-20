@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Uptime Monitoring</title>
+    <style>
+        :root {
+            --tg-theme-bg-color: #18222d;
+            --tg-theme-secondary-bg-color: #1c2733;
+            --tg-theme-text-color: #ffffff;
+            --tg-theme-hint-color: #a1aab3;
+            --tg-theme-link-color: #6ab3f3;
+            --tg-theme-button-color: #2ea6ff;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-header-bg-color: #1c2733;
+            --delete-color: #e53935;
+            --success-color: #4caf50;
+            --danger-color: #f44336;
+            --warning-color: #ff9800;
+            --safe-area-inset-top: env(safe-area-inset-top);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        * { -webkit-user-select: none; user-select: none; }
+        input, select, textarea { -webkit-user-select: text !important; user-select: text !important; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color);
+            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+            padding-top: var(--safe-area-inset-top); padding-bottom: var(--safe-area-inset-bottom);
+        }
+        .header {
+            background: var(--tg-theme-header-bg-color); padding: 10px 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 0.5px solid rgba(255,255,255,0.08); flex-shrink: 0;
+        }
+        .header h1 {
+            font-size: 18px; font-weight: 600;
+        }
+        .add-btn {
+            background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color);
+            border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; cursor: pointer;
+        }
+        .add-btn:active { opacity: 0.8; }
+        .content {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px;
+        }
+        .resource-card {
+            background: var(--tg-theme-secondary-bg-color); border-radius: 12px;
+            padding: 14px; margin-bottom: 10px;
+            border: 0.5px solid rgba(255,255,255,0.05);
+        }
+        .resource-header {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+        }
+        .resource-name {
+            font-size: 16px; font-weight: 500; word-break: break-all;
+        }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+            padding: 4px 8px; border-radius: 12px; background: rgba(255,255,255,0.1);
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .status-dot.online { background: var(--success-color); }
+        .status-dot.offline { background: var(--danger-color); }
+        .status-dot.unknown { background: var(--warning-color); }
+        .resource-info {
+            display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--tg-theme-hint-color);
+        }
+        .info-tag {
+            background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px;
+        }
+        .resource-actions {
+            display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;
+        }
+        .action-btn {
+            background: rgba(255,255,255,0.08); border: none; color: var(--tg-theme-text-color);
+            padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+        }
+        .action-btn.danger { color: var(--danger-color); }
+        .action-btn:active { background: rgba(255,255,255,0.15); }
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; min-height: 300px; color: var(--tg-theme-hint-color);
+        }
+        .empty-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-text { font-size: 16px; }
+        .modal-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); z-index:100;
+            display: none; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--tg-theme-secondary-bg-color); border-radius: 12px;
+            width: 90%; max-width: 400px; padding: 20px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 18px; font-weight: 600; margin-bottom: 16px; text-align: center;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block; font-size: 14px; color: var(--tg-theme-hint-color); margin-bottom: 4px;
+        }
+        .form-group input, .form-group select {
+            width: 100%; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2); background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color); font-size: 15px; outline: none; box-sizing: border-box;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--tg-theme-button-color);
+        }
+        .checkbox-group {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: var(--tg-theme-button-color);
+        }
+        .modal-buttons {
+            display: flex; gap: 10px; margin-top: 20px;
+        }
+        .modal-buttons button {
+            flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer;
+        }
+        .btn-cancel { background: rgba(255,255,255,0.1); color: var(--tg-theme-text-color); }
+        .btn-primary { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+        .btn-danger { background: var(--danger-color); color: #fff; }
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: #fff; padding: 12px 20px; border-radius: 8px;
+            font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 300; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        .stats-row {
+            display: flex; justify-content: space-between; padding: 8px 0;
+            border-bottom: 0.5px solid rgba(255,255,255,0.06); font-size: 14px;
+        }
+        .stats-row:last-child { border-bottom: none; }
+        .stats-label { color: var(--tg-theme-hint-color); }
+        .stats-value { font-weight: 500; }
+        .confirm-text {
+            font-size: 15px; text-align: center; margin-bottom: 20px; line-height: 1.4;
+        }
+        .latency-text { font-size: 13px; color: var(--tg-theme-hint-color); margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Мониторинг</h1>
+        <button class="add-btn" id="addResourceBtn">+ Добавить</button>
+    </div>
+    <div class="content" id="content">
+        <div class="empty-state">
+            <div class="empty-icon">📡</div>
+            <div class="empty-text">Загрузка...</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно добавления/редактирования -->
+    <div class="modal-overlay" id="resourceModal">
+        <div class="modal">
+            <div class="modal-title" id="modalTitle">Добавить ресурс</div>
+            <div class="form-group">
+                <label>URL или IP</label>
+                <input type="text" id="identifierInput" placeholder="example.com или 192.168.1.1" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Название (необязательно)</label>
+                <input type="text" id="customNameInput" placeholder="Мой сервер" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Тип проверки</label>
+                <select id="checkTypeSelect">
+                    <option value="http">HTTP</option>
+                    <option value="https">HTTPS</option>
+                    <option value="http_head">HTTP HEAD</option>
+                    <option value="https_head">HTTPS HEAD</option>
+                    <option value="tcp">TCP порт</option>
+                    <option value="dns">DNS</option>
+                    <option value="ping">Ping</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Частота опроса</label>
+                <select id="intervalSelect">
+                    <option value="60">1 минута</option>
+                    <option value="180">3 минуты</option>
+                    <option value="300">5 минут</option>
+                    <option value="600">10 минут</option>
+                    <option value="900">15 минут</option>
+                    <option value="1800">30 минут</option>
+                    <option value="3600">1 час</option>
+                    <option value="7200">2 часа</option>
+                    <option value="10800">3 часа</option>
+                </select>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="notifyCheckbox">
+                <label for="notifyCheckbox" style="margin-bottom:0;">Уведомлять при падении</label>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="cancelResourceBtn">Отмена</button>
+                <button class="btn-primary" id="saveResourceBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно статистики -->
+    <div class="modal-overlay" id="statsModal">
+        <div class="modal">
+            <div class="modal-title">Статистика</div>
+            <div id="statsContent"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="closeStatsBtn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal">
+            <div class="modal-title">Удалить ресурс?</div>
+            <div class="confirm-text" id="deleteConfirmText"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="cancelDeleteBtn">Отмена</button>
+                <button class="btn-danger" id="confirmDeleteBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const API_BASE = 'https://voidwaifu.wispbyte.app/uptime-monitoring';
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const initData = tg.initData || "";
+        let resources = [];
+        let editingFilename = null; // если редактируем
+        let deletingFilename = null;
+
+        // DOM элементы
+        const contentEl = document.getElementById('content');
+        const toastEl = document.getElementById('toast');
+        const resourceModal = document.getElementById('resourceModal');
+        const statsModal = document.getElementById('statsModal');
+        const deleteModal = document.getElementById('deleteModal');
+
+        const modalTitle = document.getElementById('modalTitle');
+        const identifierInput = document.getElementById('identifierInput');
+        const customNameInput = document.getElementById('customNameInput');
+        const checkTypeSelect = document.getElementById('checkTypeSelect');
+        const intervalSelect = document.getElementById('intervalSelect');
+        const notifyCheckbox = document.getElementById('notifyCheckbox');
+        const saveResourceBtn = document.getElementById('saveResourceBtn');
+        const cancelResourceBtn = document.getElementById('cancelResourceBtn');
+
+        const statsContent = document.getElementById('statsContent');
+        const closeStatsBtn = document.getElementById('closeStatsBtn');
+
+        const deleteConfirmText = document.getElementById('deleteConfirmText');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(toastEl._timeout);
+            toastEl._timeout = setTimeout(() => toastEl.classList.remove('show'), 3000);
+        }
+
+        function escapeHtml(text) {
+            const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function formatInterval(seconds) {
+            const map = {
+                60: '1 мин', 180: '3 мин', 300: '5 мин', 600: '10 мин',
+                900: '15 мин', 1800: '30 мин', 3600: '1 ч', 7200: '2 ч', 10800: '3 ч'
+            };
+            return map[seconds] || seconds + ' сек';
+        }
+
+        function formatCheckType(type) {
+            const map = {
+                'http': 'HTTP', 'https': 'HTTPS', 'http_head': 'HTTP HEAD',
+                'https_head': 'HTTPS HEAD', 'tcp': 'TCP', 'dns': 'DNS', 'ping': 'Ping'
+            };
+            return map[type] || type;
+        }
+
+        async function apiCall(endpoint, body) {
+            const payload = { initData, ...body };
+            const resp = await fetch(API_BASE + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) {
+                let errMsg = 'Request failed';
+                try { const err = await resp.json(); errMsg = err.error || errMsg; } catch(e) {}
+                throw new Error(errMsg);
+            }
+            return await resp.json();
+        }
+
+        async function loadResources() {
+            try {
+                const data = await apiCall('/api/resources/list', {});
+                resources = data.resources || [];
+                renderResources();
+            } catch (e) {
+                contentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Ошибка загрузки: ${escapeHtml(e.message)}</div></div>`;
+            }
+        }
+
+        function renderResources() {
+            if (!resources.length) {
+                contentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Нет ресурсов. Добавьте первый!</div></div>`;
+                return;
+            }
+
+            let html = '';
+            resources.forEach(r => {
+                let statusClass = 'unknown';
+                let statusText = 'Неизвестно';
+                if (r.last_status === 1) { statusClass = 'online'; statusText = 'Онлайн'; }
+                else if (r.last_status === 0) { statusClass = 'offline'; statusText = 'Офлайн'; }
+
+                const displayName = r.custom_name || r.identifier;
+                const subName = r.custom_name ? r.identifier : null;
+
+                html += `
+                <div class="resource-card" data-filename="${escapeHtml(r.filename)}">
+                    <div class="resource-header">
+                        <div class="resource-name">${escapeHtml(displayName)}</div>
+                        <div class="status-badge">
+                            <span class="status-dot ${statusClass}"></span>
+                            ${statusText}
+                        </div>
+                    </div>
+                    ${subName ? `<div class="latency-text">${escapeHtml(subName)}</div>` : ''}
+                    <div class="resource-info">
+                        <span class="info-tag">${formatCheckType(r.check_type)}</span>
+                        <span class="info-tag">${formatInterval(r.interval_seconds)}</span>
+                        ${r.notify ? '<span class="info-tag">🔔 Уведомления</span>' : ''}
+                        ${r.last_check_time ? `<span class="info-tag">🕒 ${escapeHtml(r.last_check_time)}</span>` : ''}
+                    </div>
+                    <div class="resource-actions">
+                        <button class="action-btn check-now-btn" data-filename="${escapeHtml(r.filename)}">Проверить</button>
+                        <button class="action-btn stats-btn" data-filename="${escapeHtml(r.filename)}">Статистика</button>
+                        <button class="action-btn edit-btn" data-filename="${escapeHtml(r.filename)}">Изменить</button>
+                        <button class="action-btn danger delete-btn" data-filename="${escapeHtml(r.filename)}">Удалить</button>
+                    </div>
+                </div>
+                `;
+            });
+            contentEl.innerHTML = html;
+
+            // Обработчики кнопок
+            document.querySelectorAll('.check-now-btn').forEach(btn => {
+                btn.addEventListener('click', () => checkNow(btn.dataset.filename));
+            });
+            document.querySelectorAll('.stats-btn').forEach(btn => {
+                btn.addEventListener('click', () => showStats(btn.dataset.filename));
+            });
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEditModal(btn.dataset.filename));
+            });
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => openDeleteModal(btn.dataset.filename));
+            });
+        }
+
+        function openAddModal() {
+            editingFilename = null;
+            modalTitle.textContent = 'Добавить ресурс';
+            identifierInput.value = '';
+            customNameInput.value = '';
+            checkTypeSelect.value = 'http';
+            intervalSelect.value = '60';
+            notifyCheckbox.checked = false;
+            resourceModal.classList.add('active');
+        }
+
+        function openEditModal(filename) {
+            const resource = resources.find(r => r.filename === filename);
+            if (!resource) return;
+            editingFilename = filename;
+            modalTitle.textContent = 'Редактировать ресурс';
+            identifierInput.value = resource.identifier || '';
+            customNameInput.value = resource.custom_name || '';
+            checkTypeSelect.value = resource.check_type || 'http';
+            intervalSelect.value = String(resource.interval_seconds || 60);
+            notifyCheckbox.checked = !!resource.notify;
+            resourceModal.classList.add('active');
+        }
+
+        function closeResourceModal() {
+            resourceModal.classList.remove('active');
+        }
+
+        async function saveResource() {
+            const identifier = identifierInput.value.trim();
+            const custom_name = customNameInput.value.trim();
+            const check_type = checkTypeSelect.value;
+            const interval_seconds = parseInt(intervalSelect.value, 10);
+            const notify = notifyCheckbox.checked;
+
+            if (!identifier) {
+                showToast('Введите URL или IP');
+                return;
+            }
+
+            try {
+                if (editingFilename) {
+                    await apiCall('/api/resources/update', {
+                        filename: editingFilename,
+                        identifier,
+                        custom_name,
+                        check_type,
+                        interval_seconds,
+                        notify
+                    });
+                    showToast('Ресурс обновлён');
+                } else {
+                    await apiCall('/api/resources/add', {
+                        identifier,
+                        custom_name,
+                        check_type,
+                        interval_seconds,
+                        notify
+                    });
+                    showToast('Ресурс добавлен');
+                }
+                closeResourceModal();
+                loadResources();
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        async function checkNow(filename) {
+            try {
+                const result = await apiCall('/api/resource/check_now', { filename });
+                const status = result.success ? '✅ Онлайн' : '❌ Офлайн';
+                const latency = result.latency_ms !== undefined ? ` (${result.latency_ms} мс)` : '';
+                showToast(`${status}${latency}`);
+                loadResources(); // обновить список
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        async function showStats(filename) {
+            try {
+                const stats = await apiCall('/api/resource/stats', { filename });
+                const current = stats.current_status === 1 ? '🟢 Онлайн' : stats.current_status === 0 ? '🔴 Офлайн' : '⚪ Неизвестно';
+                const lastCheck = stats.last_check_time || '—';
+                const html = `
+                    <div class="stats-row"><span class="stats-label">Текущий статус</span><span class="stats-value">${current}</span></div>
+                    <div class="stats-row"><span class="stats-label">Последняя проверка</span><span class="stats-value">${escapeHtml(lastCheck)}</span></div>
+                    <div class="stats-row"><span class="stats-label">Проверок за 24ч</span><span class="stats-value">${stats.last_24h.total}</span></div>
+                    <div class="stats-row"><span class="stats-label">Онлайн за 24ч</span><span class="stats-value">${stats.last_24h.online}</span></div>
+                    <div class="stats-row"><span class="stats-label">Офлайн за 24ч</span><span class="stats-value">${stats.last_24h.offline}</span></div>
+                    <div class="stats-row"><span class="stats-label">Uptime 24ч</span><span class="stats-value">${stats.last_24h.uptime_percent}%</span></div>
+                    <div class="stats-row"><span class="stats-label">Проверок за месяц</span><span class="stats-value">${stats.last_month.total}</span></div>
+                    <div class="stats-row"><span class="stats-label">Онлайн за месяц</span><span class="stats-value">${stats.last_month.online}</span></div>
+                    <div class="stats-row"><span class="stats-label">Офлайн за месяц</span><span class="stats-value">${stats.last_month.offline}</span></div>
+                    <div class="stats-row"><span class="stats-label">Uptime месяц</span><span class="stats-value">${stats.last_month.uptime_percent}%</span></div>
+                `;
+                statsContent.innerHTML = html;
+                statsModal.classList.add('active');
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        function openDeleteModal(filename) {
+            const resource = resources.find(r => r.filename === filename);
+            if (!resource) return;
+            deletingFilename = filename;
+            const displayName = resource.custom_name || resource.identifier;
+            deleteConfirmText.textContent = `Вы уверены, что хотите удалить "${displayName}"? Все данные мониторинга будут удалены.`;
+            deleteModal.classList.add('active');
+        }
+
+        async function confirmDelete() {
+            if (!deletingFilename) return;
+            try {
+                await apiCall('/api/resources/delete', { filename: deletingFilename });
+                showToast('Ресурс удалён');
+                deleteModal.classList.remove('active');
+                deletingFilename = null;
+                loadResources();
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        // Привязка событий
+        document.getElementById('addResourceBtn').addEventListener('click', openAddModal);
+        cancelResourceBtn.addEventListener('click', closeResourceModal);
+        saveResourceBtn.addEventListener('click', saveResource);
+        resourceModal.addEventListener('click', (e) => { if (e.target === resourceModal) closeResourceModal(); });
+
+        closeStatsBtn.addEventListener('click', () => statsModal.classList.remove('active'));
+        statsModal.addEventListener('click', (e) => { if (e.target === statsModal) statsModal.classList.remove('active'); });
+
+        cancelDeleteBtn.addEventListener('click', () => deleteModal.classList.remove('active'));
+        confirmDeleteBtn.addEventListener('click', confirmDelete);
+        deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) deleteModal.classList.remove('active'); });
+
+        // Инициализация
+        loadResources();
+    </script>
+</body>
+</html>
