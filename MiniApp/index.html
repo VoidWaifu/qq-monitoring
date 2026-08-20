@@ -69,6 +69,7 @@
         .status-dot.unknown { background: var(--warning-color); }
         .resource-info {
             display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--tg-theme-hint-color);
+            margin-top: 10px;
         }
         .info-tag {
             background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px;
@@ -148,7 +149,7 @@
         .confirm-text {
             font-size: 15px; text-align: center; margin-bottom: 20px; line-height: 1.4;
         }
-        .latency-text { font-size: 13px; color: var(--tg-theme-hint-color); margin-top: 4px; }
+        .latency-text { font-size: 13px; color: var(--tg-theme-hint-color); margin-top: 0; }
     </style>
 </head>
 <body>
@@ -173,7 +174,6 @@
                     <option value="head">HEAD (HTTP/HTTPS)</option>
                     <option value="tcp">TCP порт</option>
                     <option value="dns">DNS</option>
-                    <option value="ping">Ping</option>
                 </select>
             </div>
             <div class="form-group">
@@ -294,8 +294,7 @@
 
         function formatCheckType(type) {
             const map = {
-                'get': 'GET', 'head': 'HEAD', 'tcp': 'TCP',
-                'dns': 'DNS', 'ping': 'Ping'
+                'get': 'GET', 'head': 'HEAD', 'tcp': 'TCP', 'dns': 'DNS'
             };
             return map[type] || type;
         }
@@ -309,8 +308,7 @@
                 'get': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
                 'head': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
                 'tcp': { label: 'Хост:порт', placeholder: 'example.com:80 или 192.168.1.1:443' },
-                'dns': { label: 'Домен или IP', placeholder: 'example.com' },
-                'ping': { label: 'Хост', placeholder: 'example.com или 192.168.1.1' }
+                'dns': { label: 'Домен или IP', placeholder: 'example.com' }
             };
             const conf = typeConfig[checkType] || typeConfig['get'];
             identifierLabel.textContent = conf.label;
@@ -561,6 +559,7 @@
         deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) deleteModal.classList.remove('active'); });
 
         loadResources();
+        setInterval(loadResources, 60000);
     </script>
 </body>
 </html>
