@@ -98,11 +98,25 @@
             background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px;
         }
         .resource-actions {
-            display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap;
+            display: flex;
+            gap: 4px;
+            margin-top: 12px;
+            flex-wrap: nowrap;
         }
         .action-btn {
-            background: rgba(255,255,255,0.08); border: none; color: var(--tg-theme-text-color);
-            padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+            flex: 1 1 0;
+            min-width: 0;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: var(--tg-theme-text-color);
+            padding: 6px 4px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .action-btn.danger { color: var(--danger-color); }
         .action-btn:active { background: rgba(255,255,255,0.15); }
