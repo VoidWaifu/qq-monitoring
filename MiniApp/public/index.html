@@ -226,14 +226,14 @@
 <body>
     <div class="header">
         <div class="nav-buttons">
+            <a class="nav-btn active" disabled>
+                <span>Публичные</span>
+                <span>страницы</span>
+            </a>
             <a class="nav-btn" href="https://voidwaifu.github.io/uptime-monitoring/MiniApp/">
                 <span>Мои</span>
                 <span>сервисы</span>
             </a>
-            <button class="nav-btn active" disabled>
-                <span>Публичные</span>
-                <span>страницы</span>
-            </button>
         </div>
     </div>
     <div class="content" id="content">
@@ -252,6 +252,7 @@
             <div id="resourcesListContainer"></div>
             <div class="modal-buttons">
                 <button class="btn-cancel" id="cancelAddPublicBtn">Отмена</button>
+                <button class="btn-primary" id="confirmAddPublicBtn">Добавить</button>
             </div>
         </div>
     </div>
@@ -311,7 +312,7 @@
         let publicPages = [];
         let myResources = [];
         let selectedResourceFilename = null;
-        let currentEditingPublicId = null; // идентификатор публичной страницы (может быть filename ресурса или отдельный id)
+        let currentEditingPublicId = null;
 
         const contentEl = document.getElementById('content');
         const toastEl = document.getElementById('toast');
@@ -325,6 +326,7 @@
         const hideMethod = document.getElementById('hideMethod');
         const hideCodes = document.getElementById('hideCodes');
         const hideInterval = document.getElementById('hideInterval');
+        const confirmAddPublicBtn = document.getElementById('confirmAddPublicBtn');
 
         function showToast(msg) {
             toastEl.textContent = msg;
@@ -395,7 +397,7 @@
                             ${statusText}
                         </div>
                     </div>
-                    <div class="latency-text" style="font-size:13px;color:var(--tg-theme-hint-color);margin-top:4px;">${escapeHtml(page.identifier)}</div>
+                    <div style="font-size:13px;color:var(--tg-theme-hint-color);margin-top:4px;">${escapeHtml(page.identifier)}</div>
                     <div class="resource-actions">
                         <button class="action-btn ${toggleClass} toggle-btn" data-public-id="${escapeHtml(page.public_id)}" data-enabled="${page.enabled}">${toggleText}</button>
                         <button class="action-btn settings-btn" data-public-id="${escapeHtml(page.public_id)}">Настройки</button>
@@ -429,7 +431,6 @@
 
             resourcesListContainer.querySelectorAll('.resource-list-item').forEach(item => {
                 item.addEventListener('click', () => {
-                    // выделяем выбранный
                     resourcesListContainer.querySelectorAll('.resource-list-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
                     selectedResourceFilename = item.dataset.filename;
@@ -513,14 +514,13 @@
 
         document.getElementById('addPublicFab').addEventListener('click', openAddPublicModal);
         document.getElementById('cancelAddPublicBtn').addEventListener('click', closeAddPublicModal);
+        confirmAddPublicBtn.addEventListener('click', addPublicPage);
         document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettingsModal);
         document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
 
-        // Закрытие модалок по клику на оверлей
         addPublicModal.addEventListener('click', (e) => { if (e.target === addPublicModal) closeAddPublicModal(); });
         publicSettingsModal.addEventListener('click', (e) => { if (e.target === publicSettingsModal) closeSettingsModal(); });
 
-        // Инициализация
         loadPublicPages();
     </script>
 </body>
