@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Публичные страницы</title>
+    <style>
+        :root {
+            --tg-theme-bg-color: #18211b;
+            --tg-theme-secondary-bg-color: #1e2822;
+            --tg-theme-text-color: #e4e9e5;
+            --tg-theme-hint-color: #9aac9f;
+            --tg-theme-link-color: #8ab89a;
+            --tg-theme-button-color: #3f6e52;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-header-bg-color: #1e2822;
+            --delete-color: #c85a5a;
+            --success-color: #5fae6e;
+            --danger-color: #d16565;
+            --warning-color: #d69f4f;
+            --safe-area-inset-top: env(safe-area-inset-top);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        * { -webkit-user-select: none; user-select: none; }
+        input, select, textarea { -webkit-user-select: text !important; user-select: text !important; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color);
+            height: 100vh; width: 100vw; display: flex; flex-direction: column; overflow: hidden;
+            padding-top: var(--safe-area-inset-top); padding-bottom: var(--safe-area-inset-bottom);
+        }
+        .header {
+            background: var(--tg-theme-header-bg-color); padding: 10px 16px;
+            display: flex; align-items: center; justify-content: center;
+            border-bottom: 0.5px solid rgba(255,255,255,0.08); flex-shrink: 0;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .nav-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--tg-theme-text-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+            line-height: 1.2;
+            gap: 2px;
+            white-space: normal;
+            text-align: center;
+        }
+        .nav-btn.active {
+            background: var(--tg-theme-button-color);
+            border-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+        }
+        .nav-btn:active {
+            background: rgba(255,255,255,0.12);
+        }
+        .content {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px;
+        }
+        .resource-card {
+            background: var(--tg-theme-secondary-bg-color); border-radius: 12px;
+            padding: 14px; margin-bottom: 10px;
+            border: 0.5px solid rgba(255,255,255,0.05);
+        }
+        .resource-header {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+        }
+        .resource-name {
+            font-size: 16px; font-weight: 500; word-break: break-all;
+        }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+            padding: 4px 8px; border-radius: 12px; background: rgba(255,255,255,0.1);
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .status-dot.online { background: var(--success-color); }
+        .status-dot.offline { background: var(--danger-color); }
+        .status-dot.unknown { background: var(--warning-color); }
+        .resource-info {
+            display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--tg-theme-hint-color);
+            margin-top: 10px;
+        }
+        .info-tag {
+            background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px;
+        }
+        .resource-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+            flex-wrap: nowrap;
+        }
+        .action-btn {
+            flex: 1 1 0;
+            min-width: 0;
+            background: rgba(255,255,255,0.08);
+            border: none;
+            color: var(--tg-theme-text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .action-btn.toggle-on {
+            color: var(--danger-color);
+            background: rgba(209,101,101,0.1);
+        }
+        .action-btn.toggle-off {
+            color: var(--success-color);
+            background: rgba(95,174,110,0.1);
+        }
+        .action-btn:active { background: rgba(255,255,255,0.15); }
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; min-height: 300px; color: var(--tg-theme-hint-color);
+        }
+        .empty-icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-text { font-size: 16px; }
+        .modal-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.6); z-index:100;
+            display: none; align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--tg-theme-secondary-bg-color); border-radius: 12px;
+            width: 90%; max-width: 400px; padding: 20px; max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title {
+            font-size: 18px; font-weight: 600; margin-bottom: 16px; text-align: center;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block; font-size: 14px; color: var(--tg-theme-hint-color); margin-bottom: 4px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2); background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color); font-size: 15px; outline: none; box-sizing: border-box;
+        }
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--tg-theme-button-color);
+        }
+        .checkbox-group {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px; height: 18px; accent-color: var(--tg-theme-button-color);
+        }
+        .modal-buttons {
+            display: flex; gap: 10px; margin-top: 20px;
+        }
+        .modal-buttons button {
+            flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 15px; cursor: pointer;
+        }
+        .btn-cancel { background: rgba(255,255,255,0.1); color: var(--tg-theme-text-color); }
+        .btn-primary { background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color); }
+        .btn-danger { background: var(--danger-color); color: #fff; }
+        .toast {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: #fff; padding: 12px 20px; border-radius: 8px;
+            font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 300; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        .resource-list-item {
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .resource-list-item:active { background: rgba(255,255,255,0.05); }
+        .resource-list-item.selected {
+            border-color: var(--tg-theme-button-color);
+            background: rgba(63,110,82,0.2);
+        }
+        .fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 50;
+            line-height: 1;
+            padding: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            font-family: inherit;
+        }
+        .fab:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="nav-buttons">
+            <a class="nav-btn" href="https://voidwaifu.github.io/uptime-monitoring/MiniApp/">
+                <span>Мои</span>
+                <span>сервисы</span>
+            </a>
+            <button class="nav-btn active" disabled>
+                <span>Публичные</span>
+                <span>страницы</span>
+            </button>
+        </div>
+    </div>
+    <div class="content" id="content">
+        <div class="empty-state">
+            <div class="empty-icon">📡</div>
+            <div class="empty-text">Загрузка...</div>
+        </div>
+    </div>
+
+    <button class="fab" id="addPublicFab">+</button>
+
+    <!-- Модалка добавления публичной страницы -->
+    <div class="modal-overlay" id="addPublicModal">
+        <div class="modal">
+            <div class="modal-title">Выберите ресурс для публикации</div>
+            <div id="resourcesListContainer"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="cancelAddPublicBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалка настроек публичной страницы -->
+    <div class="modal-overlay" id="publicSettingsModal">
+        <div class="modal">
+            <div class="modal-title">Настройки публичной страницы</div>
+            <div class="form-group">
+                <label>Заголовок страницы</label>
+                <input type="text" id="titleInput" placeholder="Введите заголовок">
+            </div>
+            <div class="form-group">
+                <label>Описание</label>
+                <textarea id="descriptionInput" placeholder="Введите описание"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Скрыть</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hideIdentifier">
+                    <label for="hideIdentifier">URL или домен</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hideName">
+                    <label for="hideName">Название</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hideMethod">
+                    <label for="hideMethod">Метод</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hideCodes">
+                    <label for="hideCodes">Допустимые коды страницы</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hideInterval">
+                    <label for="hideInterval">Частота опроса</label>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="cancelSettingsBtn">Отмена</button>
+                <button class="btn-primary" id="saveSettingsBtn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const API_BASE = 'https://voidwaifu.wispbyte.app/uptime-monitoring';
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const initData = tg.initData || "";
+        let publicPages = [];
+        let myResources = [];
+        let selectedResourceFilename = null;
+        let currentEditingPublicId = null; // идентификатор публичной страницы (может быть filename ресурса или отдельный id)
+
+        const contentEl = document.getElementById('content');
+        const toastEl = document.getElementById('toast');
+        const addPublicModal = document.getElementById('addPublicModal');
+        const publicSettingsModal = document.getElementById('publicSettingsModal');
+        const resourcesListContainer = document.getElementById('resourcesListContainer');
+        const titleInput = document.getElementById('titleInput');
+        const descriptionInput = document.getElementById('descriptionInput');
+        const hideIdentifier = document.getElementById('hideIdentifier');
+        const hideName = document.getElementById('hideName');
+        const hideMethod = document.getElementById('hideMethod');
+        const hideCodes = document.getElementById('hideCodes');
+        const hideInterval = document.getElementById('hideInterval');
+
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(toastEl._timeout);
+            toastEl._timeout = setTimeout(() => toastEl.classList.remove('show'), 3000);
+        }
+
+        function escapeHtml(text) {
+            const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function apiCall(endpoint, body) {
+            const payload = { initData, ...body };
+            const resp = await fetch(API_BASE + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) {
+                let errMsg = 'Request failed';
+                try { const err = await resp.json(); errMsg = err.error || errMsg; } catch(e) {}
+                throw new Error(errMsg);
+            }
+            return await resp.json();
+        }
+
+        async function loadPublicPages() {
+            try {
+                const data = await apiCall('/api/public/list', {});
+                publicPages = data.public_pages || [];
+                renderPublicPages();
+            } catch (e) {
+                contentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">Ошибка загрузки: ${escapeHtml(e.message)}</div></div>`;
+            }
+        }
+
+        async function loadMyResources() {
+            try {
+                const data = await apiCall('/api/resources/list', {});
+                myResources = data.resources || [];
+                renderResourcesList();
+            } catch (e) {
+                resourcesListContainer.innerHTML = `<div class="empty-state"><div class="empty-text">Ошибка загрузки ресурсов</div></div>`;
+            }
+        }
+
+        function renderPublicPages() {
+            if (!publicPages.length) {
+                contentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Нет публичных страниц. Добавьте первую!</div></div>`;
+                return;
+            }
+
+            let html = '';
+            publicPages.forEach(page => {
+                const statusText = page.enabled ? 'Включена' : 'Выключена';
+                const statusClass = page.enabled ? 'online' : 'offline';
+                const toggleText = page.enabled ? 'Выключить' : 'Включить';
+                const toggleClass = page.enabled ? 'toggle-on' : 'toggle-off';
+
+                html += `
+                <div class="resource-card">
+                    <div class="resource-header">
+                        <div class="resource-name">${escapeHtml(page.title || page.identifier)}</div>
+                        <div class="status-badge">
+                            <span class="status-dot ${statusClass}"></span>
+                            ${statusText}
+                        </div>
+                    </div>
+                    <div class="latency-text" style="font-size:13px;color:var(--tg-theme-hint-color);margin-top:4px;">${escapeHtml(page.identifier)}</div>
+                    <div class="resource-actions">
+                        <button class="action-btn ${toggleClass} toggle-btn" data-public-id="${escapeHtml(page.public_id)}" data-enabled="${page.enabled}">${toggleText}</button>
+                        <button class="action-btn settings-btn" data-public-id="${escapeHtml(page.public_id)}">Настройки</button>
+                    </div>
+                </div>
+                `;
+            });
+            contentEl.innerHTML = html;
+
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => togglePublicPage(btn.dataset.publicId, btn.dataset.enabled === 'true'));
+            });
+            document.querySelectorAll('.settings-btn').forEach(btn => {
+                btn.addEventListener('click', () => openSettings(btn.dataset.publicId));
+            });
+        }
+
+        function renderResourcesList() {
+            if (!myResources.length) {
+                resourcesListContainer.innerHTML = `<div class="empty-state"><div class="empty-text">Нет ресурсов для публикации</div></div>`;
+                return;
+            }
+            let html = '';
+            myResources.forEach(res => {
+                html += `<div class="resource-list-item" data-filename="${escapeHtml(res.filename)}">
+                    <div class="resource-name">${escapeHtml(res.custom_name || res.identifier)}</div>
+                    <div style="font-size:12px;color:var(--tg-theme-hint-color);">${escapeHtml(res.identifier)}</div>
+                </div>`;
+            });
+            resourcesListContainer.innerHTML = html;
+
+            resourcesListContainer.querySelectorAll('.resource-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    // выделяем выбранный
+                    resourcesListContainer.querySelectorAll('.resource-list-item').forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                    selectedResourceFilename = item.dataset.filename;
+                });
+            });
+        }
+
+        async function addPublicPage() {
+            if (!selectedResourceFilename) {
+                showToast('Выберите ресурс');
+                return;
+            }
+            try {
+                await apiCall('/api/public/add', { filename: selectedResourceFilename });
+                showToast('Публичная страница добавлена');
+                closeAddPublicModal();
+                loadPublicPages();
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        async function togglePublicPage(publicId, currentEnabled) {
+            try {
+                await apiCall('/api/public/toggle', { public_id: publicId, enabled: !currentEnabled });
+                loadPublicPages();
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        async function openSettings(publicId) {
+            try {
+                const data = await apiCall('/api/public/get', { public_id: publicId });
+                currentEditingPublicId = publicId;
+                titleInput.value = data.title || '';
+                descriptionInput.value = data.description || '';
+                hideIdentifier.checked = data.hide_identifier || false;
+                hideName.checked = data.hide_name || false;
+                hideMethod.checked = data.hide_method || false;
+                hideCodes.checked = data.hide_codes || false;
+                hideInterval.checked = data.hide_interval || false;
+                publicSettingsModal.classList.add('active');
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        async function saveSettings() {
+            if (!currentEditingPublicId) return;
+            const settings = {
+                public_id: currentEditingPublicId,
+                title: titleInput.value.trim(),
+                description: descriptionInput.value.trim(),
+                hide_identifier: hideIdentifier.checked,
+                hide_name: hideName.checked,
+                hide_method: hideMethod.checked,
+                hide_codes: hideCodes.checked,
+                hide_interval: hideInterval.checked
+            };
+            try {
+                await apiCall('/api/public/update', settings);
+                showToast('Настройки сохранены');
+                closeSettingsModal();
+                loadPublicPages();
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
+        function openAddPublicModal() {
+            addPublicModal.classList.add('active');
+            loadMyResources();
+        }
+        function closeAddPublicModal() {
+            addPublicModal.classList.remove('active');
+        }
+        function closeSettingsModal() {
+            publicSettingsModal.classList.remove('active');
+        }
+
+        document.getElementById('addPublicFab').addEventListener('click', openAddPublicModal);
+        document.getElementById('cancelAddPublicBtn').addEventListener('click', closeAddPublicModal);
+        document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettingsModal);
+        document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
+        // Закрытие модалок по клику на оверлей
+        addPublicModal.addEventListener('click', (e) => { if (e.target === addPublicModal) closeAddPublicModal(); });
+        publicSettingsModal.addEventListener('click', (e) => { if (e.target === publicSettingsModal) closeSettingsModal(); });
+
+        // Инициализация
+        loadPublicPages();
+    </script>
+</body>
+</html>
