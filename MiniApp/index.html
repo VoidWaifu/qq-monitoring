@@ -114,7 +114,7 @@
         .form-group input:focus, .form-group select:focus {
             border-color: var(--tg-theme-button-color);
         }
-        .form-group input:disabled {
+        .form-group input:disabled, .form-group select:disabled {
             opacity: 0.6;
         }
         .checkbox-group {
@@ -174,7 +174,6 @@
                     <option value="tcp">TCP порт</option>
                     <option value="dns">DNS</option>
                     <option value="ping">Ping</option>
-                    <option value="ssl_cert">SSL сертификат</option>
                 </select>
             </div>
             <div class="form-group">
@@ -296,17 +295,13 @@
         function formatCheckType(type) {
             const map = {
                 'get': 'GET', 'head': 'HEAD', 'tcp': 'TCP',
-                'dns': 'DNS', 'ping': 'Ping', 'ssl_cert': 'SSL Cert'
+                'dns': 'DNS', 'ping': 'Ping'
             };
             return map[type] || type;
         }
 
-        function getStatusLabels(checkType) {
-            if (checkType === 'ssl_cert') {
-                return { online: 'Актуальный', offline: 'Просрочен', unknown: 'Неизвестно' };
-            } else {
-                return { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
-            }
+        function getStatusLabels() {
+            return { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
         }
 
         function updateIdentifierFieldForType(checkType) {
@@ -315,8 +310,7 @@
                 'head': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
                 'tcp': { label: 'Хост:порт', placeholder: 'example.com:80 или 192.168.1.1:443' },
                 'dns': { label: 'Домен или IP', placeholder: 'example.com' },
-                'ping': { label: 'Хост', placeholder: 'example.com или 192.168.1.1' },
-                'ssl_cert': { label: 'Домен', placeholder: 'example.com' }
+                'ping': { label: 'Хост', placeholder: 'example.com или 192.168.1.1' }
             };
             const conf = typeConfig[checkType] || typeConfig['get'];
             identifierLabel.textContent = conf.label;
@@ -356,7 +350,7 @@
 
             let html = '';
             resources.forEach(r => {
-                const labels = getStatusLabels(r.check_type);
+                const labels = getStatusLabels();
                 let statusClass = 'unknown';
                 let statusText = labels.unknown;
                 if (r.last_status === 1) { statusClass = 'online'; statusText = labels.online; }
@@ -413,6 +407,7 @@
         function openAddModal() {
             editingFilename = null;
             modalTitle.textContent = 'Добавить ресурс';
+            checkTypeSelect.disabled = false;
             checkTypeSelect.value = 'get';
             updateIdentifierFieldForType('get');
             identifierInput.value = '';
@@ -429,6 +424,7 @@
             if (!resource) return;
             editingFilename = filename;
             modalTitle.textContent = 'Редактировать ресурс';
+            checkTypeSelect.disabled = true;
             checkTypeSelect.value = resource.check_type || 'get';
             updateIdentifierFieldForType(resource.check_type || 'get');
             identifierInput.value = resource.identifier || '';
@@ -489,8 +485,7 @@
         async function checkNow(filename) {
             try {
                 const result = await apiCall('/api/resource/check_now', { filename });
-                const resource = resources.find(r => r.filename === filename);
-                const labels = resource ? getStatusLabels(resource.check_type) : { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
+                const labels = getStatusLabels();
                 const status = result.success ? labels.online : labels.offline;
                 const latency = result.latency_ms !== undefined ? ` (${result.latency_ms} мс)` : '';
                 showToast(`${status}${latency}`);
@@ -503,8 +498,7 @@
         async function showStats(filename) {
             try {
                 const stats = await apiCall('/api/resource/stats', { filename });
-                const resource = resources.find(r => r.filename === filename);
-                const labels = resource ? getStatusLabels(resource.check_type) : { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
+                const labels = getStatusLabels();
                 const current = stats.current_status === 1 ? labels.online : stats.current_status === 0 ? labels.offline : labels.unknown;
                 const lastCheck = stats.last_check_time || '—';
                 const html = `
@@ -549,7 +543,9 @@
         }
 
         checkTypeSelect.addEventListener('change', () => {
-            updateIdentifierFieldForType(checkTypeSelect.value);
+            if (!checkTypeSelect.disabled) {
+                updateIdentifierFieldForType(checkTypeSelect.value);
+            }
         });
 
         document.getElementById('addResourceBtn').addEventListener('click', openAddModal);
