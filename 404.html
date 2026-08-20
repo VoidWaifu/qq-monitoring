@@ -6,7 +6,6 @@
     <title>VoidWaifu - Публичная страница мониторинга</title>
     <link rel="icon" type="image/png" href="../assets/icon.png">
     <style>
-        /* ===== Публичная страница (синяя) ===== */
         :root {
             --public-bg-primary: #18222d;
             --public-bg-secondary: #1c2733;
@@ -41,7 +40,18 @@
         }
         main { flex:1; padding: 2rem 0; }
 
+        #loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            font-size: 1.5rem;
+            color: var(--public-text-secondary);
+        }
+
         #publicStatus { display: none; }
+        #fallback404 { display: none; }
+
         .public-card {
             background: var(--public-bg-secondary);
             border-radius: 16px;
@@ -94,7 +104,6 @@
         .uptime-value { font-size: 1.6rem; font-weight: 700; color: var(--public-accent); }
         .uptime-label { font-size: 0.85rem; color: var(--public-text-secondary); }
 
-        /* ===== 404 (фиолетовая) ===== */
         .glitch-overlay { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; animation:glitch-overlay 5s infinite; mix-blend-mode:overlay; }
         .scanlines { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%); background-size:100% 4px; pointer-events:none; z-index:9998; opacity:0.4; animation:scanlines 0.3s linear infinite; }
         .noise { position:fixed; top:0; left:0; width:100%; height:100%; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); pointer-events:none; z-index:9997; opacity:0.2; animation:noise 0.1s infinite; }
@@ -149,7 +158,9 @@
     </style>
 </head>
 <body>
-    <div id="fallback404">
+    <div id="loading">Загрузка...</div>
+
+    <div id="fallback404" style="display:none;">
         <div class="glitch-overlay" style="background: linear-gradient(45deg, #bb86fc 0%, transparent 50%);"></div>
         <div class="scanlines"></div>
         <div class="noise"></div>
@@ -173,7 +184,7 @@
         </main>
     </div>
 
-    <div id="publicStatus">
+    <div id="publicStatus" style="display:none;">
         <main>
             <div class="container">
                 <div class="public-card">
@@ -194,20 +205,29 @@
 
     <script>
         const API_BASE = 'https://voidwaifu.wispbyte.app/qq-monitoring';
-        const FALLBACK = document.getElementById('fallback404');
-        const PUBLIC = document.getElementById('publicStatus');
+        const loadingEl = document.getElementById('loading');
+        const fallbackEl = document.getElementById('fallback404');
+        const publicEl = document.getElementById('publicStatus');
+
+        function showLoading() {
+            loadingEl.style.display = 'flex';
+            fallbackEl.style.display = 'none';
+            publicEl.style.display = 'none';
+        }
 
         function show404() {
-            FALLBACK.style.display = 'block';
-            PUBLIC.style.display = 'none';
+            loadingEl.style.display = 'none';
+            fallbackEl.style.display = 'block';
+            publicEl.style.display = 'none';
             document.body.classList.add('flicker');
             document.body.style.backgroundColor = '#121212';
             init404Effects();
         }
 
         function showPublic(data) {
-            FALLBACK.style.display = 'none';
-            PUBLIC.style.display = 'block';
+            loadingEl.style.display = 'none';
+            fallbackEl.style.display = 'none';
+            publicEl.style.display = 'block';
             document.body.classList.remove('flicker');
             document.body.style.backgroundColor = '#18222d';
 
@@ -276,6 +296,7 @@
         }
 
         async function loadPublicPage(publicId) {
+            showLoading();
             try {
                 const resp = await fetch(`${API_BASE}/api/public/status`, {
                     method: 'POST',
