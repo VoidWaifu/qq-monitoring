@@ -167,24 +167,23 @@
         <div class="modal">
             <div class="modal-title" id="modalTitle">Добавить ресурс</div>
             <div class="form-group">
-                <label>URL, IP или IP:порт</label>
-                <input type="text" id="identifierInput" placeholder="example.com, 192.168.1.1, 192.168.1.1:8080" autocomplete="off">
+                <label>Тип проверки</label>
+                <select id="checkTypeSelect">
+                    <option value="get">GET (HTTP/HTTPS)</option>
+                    <option value="head">HEAD (HTTP/HTTPS)</option>
+                    <option value="tcp">TCP порт</option>
+                    <option value="dns">DNS</option>
+                    <option value="ping">Ping</option>
+                    <option value="ssl_cert">SSL сертификат</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label id="identifierLabel">URL или домен</label>
+                <input type="text" id="identifierInput" placeholder="example.com или https://example.com" autocomplete="off">
             </div>
             <div class="form-group">
                 <label>Название (необязательно)</label>
                 <input type="text" id="customNameInput" placeholder="Мой сервер" autocomplete="off">
-            </div>
-            <div class="form-group">
-                <label>Тип проверки</label>
-                <select id="checkTypeSelect">
-                    <option value="http">HTTP</option>
-                    <option value="https">HTTPS</option>
-                    <option value="http_head">HTTP HEAD</option>
-                    <option value="https_head">HTTPS HEAD</option>
-                    <option value="tcp">TCP порт</option>
-                    <option value="dns">DNS</option>
-                    <option value="ping">Ping</option>
-                </select>
             </div>
             <div class="form-group">
                 <label>Частота опроса</label>
@@ -201,8 +200,12 @@
                 </select>
             </div>
             <div class="checkbox-group">
-                <input type="checkbox" id="notifyCheckbox">
-                <label for="notifyCheckbox" style="margin-bottom:0;">Уведомлять при падении</label>
+                <input type="checkbox" id="notifyDownCheckbox">
+                <label for="notifyDownCheckbox" style="margin-bottom:0;">Уведомлять при падении</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="notifyUpCheckbox">
+                <label for="notifyUpCheckbox" style="margin-bottom:0;">Уведомлять при восстановлении</label>
             </div>
             <div class="modal-buttons">
                 <button class="btn-cancel" id="cancelResourceBtn">Отмена</button>
@@ -253,11 +256,13 @@
         const deleteModal = document.getElementById('deleteModal');
 
         const modalTitle = document.getElementById('modalTitle');
+        const checkTypeSelect = document.getElementById('checkTypeSelect');
+        const identifierLabel = document.getElementById('identifierLabel');
         const identifierInput = document.getElementById('identifierInput');
         const customNameInput = document.getElementById('customNameInput');
-        const checkTypeSelect = document.getElementById('checkTypeSelect');
         const intervalSelect = document.getElementById('intervalSelect');
-        const notifyCheckbox = document.getElementById('notifyCheckbox');
+        const notifyDownCheckbox = document.getElementById('notifyDownCheckbox');
+        const notifyUpCheckbox = document.getElementById('notifyUpCheckbox');
         const saveResourceBtn = document.getElementById('saveResourceBtn');
         const cancelResourceBtn = document.getElementById('cancelResourceBtn');
 
@@ -290,10 +295,32 @@
 
         function formatCheckType(type) {
             const map = {
-                'http': 'HTTP', 'https': 'HTTPS', 'http_head': 'HTTP HEAD',
-                'https_head': 'HTTPS HEAD', 'tcp': 'TCP', 'dns': 'DNS', 'ping': 'Ping'
+                'get': 'GET', 'head': 'HEAD', 'tcp': 'TCP',
+                'dns': 'DNS', 'ping': 'Ping', 'ssl_cert': 'SSL Cert'
             };
             return map[type] || type;
+        }
+
+        function getStatusLabels(checkType) {
+            if (checkType === 'ssl_cert') {
+                return { online: 'Актуальный', offline: 'Просрочен', unknown: 'Неизвестно' };
+            } else {
+                return { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
+            }
+        }
+
+        function updateIdentifierFieldForType(checkType) {
+            const typeConfig = {
+                'get': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
+                'head': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
+                'tcp': { label: 'Хост:порт', placeholder: 'example.com:80 или 192.168.1.1:443' },
+                'dns': { label: 'Домен или IP', placeholder: 'example.com' },
+                'ping': { label: 'Хост', placeholder: 'example.com или 192.168.1.1' },
+                'ssl_cert': { label: 'Домен', placeholder: 'example.com' }
+            };
+            const conf = typeConfig[checkType] || typeConfig['get'];
+            identifierLabel.textContent = conf.label;
+            identifierInput.placeholder = conf.placeholder;
         }
 
         async function apiCall(endpoint, body) {
@@ -329,13 +356,19 @@
 
             let html = '';
             resources.forEach(r => {
+                const labels = getStatusLabels(r.check_type);
                 let statusClass = 'unknown';
-                let statusText = 'Неизвестно';
-                if (r.last_status === 1) { statusClass = 'online'; statusText = 'Онлайн'; }
-                else if (r.last_status === 0) { statusClass = 'offline'; statusText = 'Офлайн'; }
+                let statusText = labels.unknown;
+                if (r.last_status === 1) { statusClass = 'online'; statusText = labels.online; }
+                else if (r.last_status === 0) { statusClass = 'offline'; statusText = labels.offline; }
 
                 const displayName = r.custom_name || r.identifier;
                 const subName = r.custom_name ? r.identifier : null;
+
+                const notifyTags = [];
+                if (r.notify_down) notifyTags.push('При падении');
+                if (r.notify_up) notifyTags.push('При восстановлении');
+                const notifyText = notifyTags.length ? notifyTags.join(', ') : '';
 
                 html += `
                 <div class="resource-card" data-filename="${escapeHtml(r.filename)}">
@@ -350,7 +383,7 @@
                     <div class="resource-info">
                         <span class="info-tag">${formatCheckType(r.check_type)}</span>
                         <span class="info-tag">${formatInterval(r.interval_seconds)}</span>
-                        ${r.notify ? '<span class="info-tag">Уведомления</span>' : ''}
+                        ${notifyText ? `<span class="info-tag">Уведомления: ${notifyText}</span>` : ''}
                     </div>
                     <div class="resource-actions">
                         <button class="action-btn check-now-btn" data-filename="${escapeHtml(r.filename)}">Проверить</button>
@@ -380,12 +413,14 @@
         function openAddModal() {
             editingFilename = null;
             modalTitle.textContent = 'Добавить ресурс';
+            checkTypeSelect.value = 'get';
+            updateIdentifierFieldForType('get');
             identifierInput.value = '';
             identifierInput.disabled = false;
             customNameInput.value = '';
-            checkTypeSelect.value = 'http';
             intervalSelect.value = '60';
-            notifyCheckbox.checked = false;
+            notifyDownCheckbox.checked = false;
+            notifyUpCheckbox.checked = false;
             resourceModal.classList.add('active');
         }
 
@@ -394,12 +429,14 @@
             if (!resource) return;
             editingFilename = filename;
             modalTitle.textContent = 'Редактировать ресурс';
+            checkTypeSelect.value = resource.check_type || 'get';
+            updateIdentifierFieldForType(resource.check_type || 'get');
             identifierInput.value = resource.identifier || '';
             identifierInput.disabled = true;
             customNameInput.value = resource.custom_name || '';
-            checkTypeSelect.value = resource.check_type || 'http';
             intervalSelect.value = String(resource.interval_seconds || 60);
-            notifyCheckbox.checked = !!resource.notify;
+            notifyDownCheckbox.checked = !!resource.notify_down;
+            notifyUpCheckbox.checked = !!resource.notify_up;
             resourceModal.classList.add('active');
         }
 
@@ -412,10 +449,11 @@
             const custom_name = customNameInput.value.trim();
             const check_type = checkTypeSelect.value;
             const interval_seconds = parseInt(intervalSelect.value, 10);
-            const notify = notifyCheckbox.checked;
+            const notify_down = notifyDownCheckbox.checked;
+            const notify_up = notifyUpCheckbox.checked;
 
             if (!identifier) {
-                showToast('Введите URL или IP');
+                showToast('Введите ресурс');
                 return;
             }
 
@@ -426,7 +464,8 @@
                         custom_name,
                         check_type,
                         interval_seconds,
-                        notify
+                        notify_down,
+                        notify_up
                     });
                     showToast('Ресурс обновлён');
                 } else {
@@ -435,7 +474,8 @@
                         custom_name,
                         check_type,
                         interval_seconds,
-                        notify
+                        notify_down,
+                        notify_up
                     });
                     showToast('Ресурс добавлен');
                 }
@@ -449,7 +489,9 @@
         async function checkNow(filename) {
             try {
                 const result = await apiCall('/api/resource/check_now', { filename });
-                const status = result.success ? '✅ Онлайн' : '❌ Офлайн';
+                const resource = resources.find(r => r.filename === filename);
+                const labels = resource ? getStatusLabels(resource.check_type) : { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
+                const status = result.success ? labels.online : labels.offline;
                 const latency = result.latency_ms !== undefined ? ` (${result.latency_ms} мс)` : '';
                 showToast(`${status}${latency}`);
                 loadResources();
@@ -461,7 +503,9 @@
         async function showStats(filename) {
             try {
                 const stats = await apiCall('/api/resource/stats', { filename });
-                const current = stats.current_status === 1 ? '🟢 Онлайн' : stats.current_status === 0 ? '🔴 Офлайн' : '⚪ Неизвестно';
+                const resource = resources.find(r => r.filename === filename);
+                const labels = resource ? getStatusLabels(resource.check_type) : { online: 'Онлайн', offline: 'Офлайн', unknown: 'Неизвестно' };
+                const current = stats.current_status === 1 ? labels.online : stats.current_status === 0 ? labels.offline : labels.unknown;
                 const lastCheck = stats.last_check_time || '—';
                 const html = `
                     <div class="stats-row"><span class="stats-label">Текущий статус</span><span class="stats-value">${current}</span></div>
@@ -503,6 +547,10 @@
                 showToast('Ошибка: ' + e.message);
             }
         }
+
+        checkTypeSelect.addEventListener('change', () => {
+            updateIdentifierFieldForType(checkTypeSelect.value);
+        });
 
         document.getElementById('addResourceBtn').addEventListener('click', openAddModal);
         cancelResourceBtn.addEventListener('click', closeResourceModal);
