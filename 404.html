@@ -6,7 +6,6 @@
     <title>VoidWaifu - Публичная страница мониторинга</title>
     <link rel="icon" type="image/png" href="../assets/icon.png">
     <style>
-        /* ===== Общие стили ===== */
         * { margin:0; padding:0; box-sizing:border-box; max-width:100%; }
         :root {
             --bg-primary: #18211b;
@@ -39,7 +38,6 @@
         }
         main { flex:1; padding: 2rem 0; }
 
-        /* ===== Стили для публичной страницы ===== */
         #publicStatus {
             display: none;
         }
@@ -136,8 +134,6 @@
             color: var(--text-secondary);
         }
 
-        /* ===== Стили для 404 (из предоставленного кода) ===== */
-        /* Скопированы стили из вашего 404.html */
         .glitch-overlay { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; animation:glitch-overlay 5s infinite; mix-blend-mode:overlay; }
         .scanlines { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%); background-size:100% 4px; pointer-events:none; z-index:9998; opacity:0.4; animation:scanlines 0.3s linear infinite; }
         .noise { position:fixed; top:0; left:0; width:100%; height:100%; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); pointer-events:none; z-index:9997; opacity:0.2; animation:noise 0.1s infinite; }
@@ -191,8 +187,7 @@
         html { scroll-behavior:smooth; }
     </style>
 </head>
-<body class="flicker">
-    <!-- Контейнер для 404 (показывается по умолчанию) -->
+<body>
     <div id="fallback404">
         <div class="glitch-overlay" style="background: linear-gradient(45deg, var(--accent) 0%, transparent 50%);"></div>
         <div class="scanlines"></div>
@@ -217,7 +212,6 @@
         </main>
     </div>
 
-    <!-- Контейнер для публичной страницы (скрыт по умолчанию) -->
     <div id="publicStatus">
         <main>
             <div class="container">
@@ -238,28 +232,25 @@
     </div>
 
     <script>
-        // ===== Конфигурация =====
         const API_BASE = 'https://voidwaifu.wispbyte.app/qq-monitoring';
         const FALLBACK = document.getElementById('fallback404');
         const PUBLIC = document.getElementById('publicStatus');
 
-        // ===== Показ 404 (используем ваш код) =====
         function show404() {
             FALLBACK.style.display = 'block';
             PUBLIC.style.display = 'none';
-            // Запускаем анимации 404 (копия из вашего кода)
+            document.body.classList.add('flicker');
             init404Effects();
         }
 
-        // ===== Показ публичной страницы =====
         function showPublic(data) {
             FALLBACK.style.display = 'none';
             PUBLIC.style.display = 'block';
+            document.body.classList.remove('flicker');
 
             document.getElementById('publicTitle').textContent = data.title || data.identifier;
             document.getElementById('publicDescription').textContent = data.description || '';
 
-            // Статус
             const dot = document.getElementById('statusDot');
             const statusText = document.getElementById('statusText');
             dot.className = 'status-dot';
@@ -274,7 +265,6 @@
                 statusText.textContent = 'Неизвестно';
             }
 
-            // Информационные строки
             const infoContainer = document.getElementById('publicInfo');
             infoContainer.innerHTML = '';
             if (!data.hide_identifier) addInfoRow('URL или домен', data.identifier);
@@ -283,7 +273,6 @@
             if (data.allowed_codes && !data.hide_codes) addInfoRow('Допустимые коды', data.allowed_codes);
             if (data.interval_seconds && !data.hide_interval) addInfoRow('Частота опроса', formatInterval(data.interval_seconds));
 
-            // Uptime статистика
             const uptimeContainer = document.getElementById('uptimeStats');
             uptimeContainer.innerHTML = '';
             if (data.uptime_24h !== undefined) {
@@ -323,7 +312,6 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
-        // ===== Функция для загрузки публичной страницы по public_id =====
         async function loadPublicPage(publicId) {
             try {
                 const resp = await fetch(`${API_BASE}/api/public/status`, {
@@ -343,10 +331,8 @@
             }
         }
 
-        // ===== Извлечение public_id из URL =====
         function getPublicIdFromPath() {
             const path = window.location.pathname;
-            // Например /qq-monitoring/xQW3656PRquD
             const parts = path.split('/').filter(Boolean);
             const last = parts[parts.length - 1];
             if (last && last.length === 12 && /^[a-zA-Z0-9]+$/.test(last)) {
@@ -355,9 +341,7 @@
             return null;
         }
 
-        // ===== Инициализация 404 эффектов (ваш код) =====
         function init404Effects() {
-            // Копируем весь JS из вашего 404.html сюда (сокращённо, но функционально)
             const errorCode = document.querySelector('.error-code');
             if (errorCode) {
                 errorCode.addEventListener('mouseover', function() {
@@ -453,7 +437,6 @@
             }, 3000);
         }
 
-        // ===== Запуск =====
         const publicId = getPublicIdFromPath();
         if (publicId) {
             loadPublicPage(publicId);
