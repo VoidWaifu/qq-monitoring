@@ -104,6 +104,7 @@
         .uptime-value { font-size: 1.6rem; font-weight: 700; color: var(--public-accent); }
         .uptime-label { font-size: 0.85rem; color: var(--public-text-secondary); }
 
+        /* Стили для 404 (фиолетовая) */
         .glitch-overlay { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; animation:glitch-overlay 5s infinite; mix-blend-mode:overlay; }
         .scanlines { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%); background-size:100% 4px; pointer-events:none; z-index:9998; opacity:0.4; animation:scanlines 0.3s linear infinite; }
         .noise { position:fixed; top:0; left:0; width:100%; height:100%; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); pointer-events:none; z-index:9997; opacity:0.2; animation:noise 0.1s infinite; }
@@ -158,7 +159,7 @@
     </style>
 </head>
 <body>
-    <div id="loading">Загрузка...</div>
+    <div id="loading" style="display:flex;">Загрузка...</div>
 
     <div id="fallback404" style="display:none;">
         <div class="glitch-overlay" style="background: linear-gradient(45deg, #bb86fc 0%, transparent 50%);"></div>
@@ -209,13 +210,28 @@
         const fallbackEl = document.getElementById('fallback404');
         const publicEl = document.getElementById('publicStatus');
 
+        // Глобальные переменные для интервалов эффектов
+        let artifactInterval = null;
+        let flickerInterval = null;
+        let glitchBodyInterval = null;
+        let colorInterval = null;
+
         function showLoading() {
             loadingEl.style.display = 'flex';
             fallbackEl.style.display = 'none';
             publicEl.style.display = 'none';
         }
 
+        function stop404Effects() {
+            if (artifactInterval) clearTimeout(artifactInterval);
+            if (flickerInterval) clearInterval(flickerInterval);
+            if (glitchBodyInterval) clearInterval(glitchBodyInterval);
+            if (colorInterval) clearInterval(colorInterval);
+            artifactInterval = flickerInterval = glitchBodyInterval = colorInterval = null;
+        }
+
         function show404() {
+            stop404Effects();
             loadingEl.style.display = 'none';
             fallbackEl.style.display = 'block';
             publicEl.style.display = 'none';
@@ -225,6 +241,7 @@
         }
 
         function showPublic(data) {
+            stop404Effects();
             loadingEl.style.display = 'none';
             fallbackEl.style.display = 'none';
             publicEl.style.display = 'block';
@@ -395,10 +412,11 @@
             function scheduleArtifact() {
                 const count = Math.floor(Math.random() * 2) + 1;
                 for (let i = 0; i < count; i++) setTimeout(createRandomArtifact, Math.random() * 500);
-                setTimeout(scheduleArtifact, Math.random() * 400 + 200);
+                artifactInterval = setTimeout(scheduleArtifact, Math.random() * 400 + 200);
             }
             scheduleArtifact();
-            setInterval(() => {
+
+            flickerInterval = setInterval(() => {
                 document.querySelectorAll('.error-code, .error-title, .error-message, .error-explanation, .home-link').forEach(el => {
                     if (Math.random() > 0.5) {
                         el.style.opacity = Math.random() * 0.5 + 0.5;
@@ -406,17 +424,19 @@
                     }
                 });
             }, 2000);
-            setInterval(() => {
+
+            glitchBodyInterval = setInterval(() => {
                 if (Math.random() > 0.6) {
                     document.body.style.transform = `translate(${Math.random() * 6 - 3}px, ${Math.random() * 6 - 3}px)`;
                     setTimeout(() => { document.body.style.transform = 'translate(0, 0)'; }, 100);
                 }
             }, 1500);
-            setInterval(() => {
+
+            colorInterval = setInterval(() => {
                 if (Math.random() > 0.8) {
                     const hue = Math.random() * 360;
                     document.body.style.backgroundColor = `hsl(${hue}, 10%, 8%)`;
-                    setTimeout(() => { document.body.style.backgroundColor = ''; }, 200);
+                    setTimeout(() => { document.body.style.backgroundColor = '#121212'; }, 200);
                 }
             }, 3000);
         }
