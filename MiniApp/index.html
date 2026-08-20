@@ -241,23 +241,57 @@
     <div class="modal-overlay" id="resourceModal">
         <div class="modal">
             <div class="modal-title" id="modalTitle">Добавить ресурс</div>
+
             <div class="form-group">
                 <label>Тип проверки</label>
                 <select id="checkTypeSelect">
-                    <option value="get">GET (HTTP/HTTPS)</option>
-                    <option value="head">HEAD (HTTP/HTTPS)</option>
+                    <option value="http">HTTP(s)</option>
+                    <option value="keyword">HTTP(s) - ключевое слово</option>
                     <option value="tcp">TCP порт</option>
                     <option value="dns">DNS</option>
                 </select>
             </div>
+
             <div class="form-group">
                 <label id="identifierLabel">URL или домен</label>
                 <input type="text" id="identifierInput" placeholder="example.com или https://example.com" autocomplete="off">
             </div>
+
             <div class="form-group">
                 <label>Название (необязательно)</label>
                 <input type="text" id="customNameInput" placeholder="Мой сервер" autocomplete="off">
             </div>
+
+            <div class="form-group" id="methodGroup">
+                <label>Метод</label>
+                <select id="methodSelect">
+                    <option value="get">GET</option>
+                    <option value="head">HEAD</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="keywordGroup">
+                <label>Ключевое слово</label>
+                <input type="text" id="keywordInput" placeholder="Например: welcome" autocomplete="off">
+            </div>
+
+            <div class="form-group" id="retryCountGroup">
+                <label>Повторная проверка при неудаче</label>
+                <select id="retryCountSelect">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="allowedCodesGroup">
+                <label>Допустимые коды страницы</label>
+                <select id="allowedCodesSelect">
+                    <!-- Опции будут добавлены через JS -->
+                </select>
+            </div>
+
             <div class="form-group">
                 <label>Частота опроса</label>
                 <select id="intervalSelect">
@@ -272,6 +306,7 @@
                     <option value="10800">3 часа</option>
                 </select>
             </div>
+
             <div class="checkbox-group">
                 <input type="checkbox" id="notifyDownCheckbox">
                 <label for="notifyDownCheckbox" style="margin-bottom:0;">Уведомлять при падении</label>
@@ -280,6 +315,7 @@
                 <input type="checkbox" id="notifyUpCheckbox">
                 <label for="notifyUpCheckbox" style="margin-bottom:0;">Уведомлять при восстановлении</label>
             </div>
+
             <div class="modal-buttons">
                 <button class="btn-cancel" id="cancelResourceBtn">Отмена</button>
                 <button class="btn-primary" id="saveResourceBtn">Сохранить</button>
@@ -333,6 +369,14 @@
         const identifierLabel = document.getElementById('identifierLabel');
         const identifierInput = document.getElementById('identifierInput');
         const customNameInput = document.getElementById('customNameInput');
+        const methodGroup = document.getElementById('methodGroup');
+        const methodSelect = document.getElementById('methodSelect');
+        const keywordGroup = document.getElementById('keywordGroup');
+        const keywordInput = document.getElementById('keywordInput');
+        const retryCountGroup = document.getElementById('retryCountGroup');
+        const retryCountSelect = document.getElementById('retryCountSelect');
+        const allowedCodesGroup = document.getElementById('allowedCodesGroup');
+        const allowedCodesSelect = document.getElementById('allowedCodesSelect');
         const intervalSelect = document.getElementById('intervalSelect');
         const notifyDownCheckbox = document.getElementById('notifyDownCheckbox');
         const notifyUpCheckbox = document.getElementById('notifyUpCheckbox');
@@ -345,6 +389,33 @@
         const deleteConfirmText = document.getElementById('deleteConfirmText');
         const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        // Инициализация опций для допустимых кодов
+        function initAllowedCodes() {
+            // Диапазоны
+            const optgroupRange = document.createElement('optgroup');
+            optgroupRange.label = 'Диапазоны';
+            const ranges = ['100-199', '200-299', '300-399', '400-499', '500-599'];
+            ranges.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                optgroupRange.appendChild(opt);
+            });
+            allowedCodesSelect.appendChild(optgroupRange);
+
+            // Отдельные коды
+            const optgroupSingle = document.createElement('optgroup');
+            optgroupSingle.label = 'Отдельные коды';
+            for (let i = 100; i <= 999; i++) {
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = String(i);
+                optgroupSingle.appendChild(opt);
+            }
+            allowedCodesSelect.appendChild(optgroupSingle);
+        }
+        initAllowedCodes();
 
         function showToast(msg) {
             toastEl.textContent = msg;
@@ -368,7 +439,10 @@
 
         function formatCheckType(type) {
             const map = {
-                'get': 'GET', 'head': 'HEAD', 'tcp': 'TCP', 'dns': 'DNS'
+                'http': 'HTTP(s)',
+                'keyword': 'HTTP(s) - ключевое слово',
+                'tcp': 'TCP порт',
+                'dns': 'DNS'
             };
             return map[type] || type;
         }
@@ -379,14 +453,45 @@
 
         function updateIdentifierFieldForType(checkType) {
             const typeConfig = {
-                'get': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
-                'head': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
+                'http': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
+                'keyword': { label: 'URL или домен', placeholder: 'example.com или https://example.com' },
                 'tcp': { label: 'Хост:порт', placeholder: 'example.com:80 или 192.168.1.1:443' },
                 'dns': { label: 'Домен или IP', placeholder: 'example.com' }
             };
-            const conf = typeConfig[checkType] || typeConfig['get'];
+            const conf = typeConfig[checkType] || typeConfig['http'];
             identifierLabel.textContent = conf.label;
             identifierInput.placeholder = conf.placeholder;
+        }
+
+        function updateFormForType(type, isEditing = false) {
+            // Скрыть все специфичные группы
+            methodGroup.style.display = 'none';
+            keywordGroup.style.display = 'none';
+            retryCountGroup.style.display = 'none';
+            allowedCodesGroup.style.display = 'none';
+
+            // Показать в зависимости от типа
+            if (type === 'http') {
+                methodGroup.style.display = 'block';
+                retryCountGroup.style.display = 'block';
+                allowedCodesGroup.style.display = 'block';
+            } else if (type === 'keyword') {
+                keywordGroup.style.display = 'block';
+            } else if (type === 'tcp') {
+                retryCountGroup.style.display = 'block';
+            }
+            // для dns ничего дополнительно
+
+            // Обновить лейбл и плейсхолдер
+            updateIdentifierFieldForType(type);
+
+            // Если не редактирование, сбросить значения специфичных полей
+            if (!isEditing) {
+                methodSelect.value = 'get';
+                retryCountSelect.value = '0';
+                allowedCodesSelect.value = '200-299';
+                keywordInput.value = '';
+            }
         }
 
         async function apiCall(endpoint, body) {
@@ -480,8 +585,8 @@
             editingFilename = null;
             modalTitle.textContent = 'Добавить ресурс';
             checkTypeSelect.disabled = false;
-            checkTypeSelect.value = 'get';
-            updateIdentifierFieldForType('get');
+            checkTypeSelect.value = 'http';
+            updateFormForType('http', false);
             identifierInput.value = '';
             identifierInput.disabled = false;
             customNameInput.value = '';
@@ -497,14 +602,37 @@
             editingFilename = filename;
             modalTitle.textContent = 'Редактировать ресурс';
             checkTypeSelect.disabled = true;
-            checkTypeSelect.value = resource.check_type || 'get';
-            updateIdentifierFieldForType(resource.check_type || 'get');
+            checkTypeSelect.value = resource.check_type || 'http';
+            updateFormForType(resource.check_type || 'http', true);
             identifierInput.value = resource.identifier || '';
             identifierInput.disabled = true;
             customNameInput.value = resource.custom_name || '';
             intervalSelect.value = String(resource.interval_seconds || 60);
             notifyDownCheckbox.checked = !!resource.notify_down;
             notifyUpCheckbox.checked = !!resource.notify_up;
+
+            // Установить специфичные поля из данных ресурса (если есть)
+            if (resource.method) {
+                methodSelect.value = resource.method;
+            } else {
+                methodSelect.value = 'get';
+            }
+            if (resource.retry_count !== undefined) {
+                retryCountSelect.value = String(resource.retry_count);
+            } else {
+                retryCountSelect.value = '0';
+            }
+            if (resource.allowed_codes) {
+                allowedCodesSelect.value = String(resource.allowed_codes);
+            } else {
+                allowedCodesSelect.value = '200-299';
+            }
+            if (resource.keyword) {
+                keywordInput.value = resource.keyword;
+            } else {
+                keywordInput.value = '';
+            }
+
             resourceModal.classList.add('active');
         }
 
@@ -525,26 +653,42 @@
                 return;
             }
 
+            // Собрать дополнительные параметры в зависимости от типа
+            const extra = {};
+            if (check_type === 'http') {
+                extra.method = methodSelect.value;
+                extra.retry_count = parseInt(retryCountSelect.value, 10);
+                extra.allowed_codes = allowedCodesSelect.value;
+            } else if (check_type === 'keyword') {
+                extra.keyword = keywordInput.value.trim();
+                if (!extra.keyword) {
+                    showToast('Введите ключевое слово');
+                    return;
+                }
+            } else if (check_type === 'tcp') {
+                extra.retry_count = parseInt(retryCountSelect.value, 10);
+            }
+            // для dns ничего дополнительно
+
+            const payload = {
+                identifier,
+                custom_name,
+                check_type,
+                interval_seconds,
+                notify_down,
+                notify_up,
+                ...extra
+            };
+
             try {
                 if (editingFilename) {
                     await apiCall('/api/resources/update', {
                         filename: editingFilename,
-                        custom_name,
-                        check_type,
-                        interval_seconds,
-                        notify_down,
-                        notify_up
+                        ...payload
                     });
                     showToast('Ресурс обновлён');
                 } else {
-                    await apiCall('/api/resources/add', {
-                        identifier,
-                        custom_name,
-                        check_type,
-                        interval_seconds,
-                        notify_down,
-                        notify_up
-                    });
+                    await apiCall('/api/resources/add', payload);
                     showToast('Ресурс добавлен');
                 }
                 closeResourceModal();
@@ -616,7 +760,7 @@
 
         checkTypeSelect.addEventListener('change', () => {
             if (!checkTypeSelect.disabled) {
-                updateIdentifierFieldForType(checkTypeSelect.value);
+                updateFormForType(checkTypeSelect.value, false);
             }
         });
 
