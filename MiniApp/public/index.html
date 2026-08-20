@@ -387,6 +387,7 @@
                 const statusClass = page.enabled ? 'online' : 'offline';
                 const toggleText = page.enabled ? 'Выключить' : 'Включить';
                 const toggleClass = page.enabled ? 'toggle-on' : 'toggle-off';
+                const publicUrl = `https://voidwaifu.github.io/uptime-monitoring/${page.public_id}`;
 
                 html += `
                 <div class="resource-card">
@@ -401,6 +402,7 @@
                     <div class="resource-actions">
                         <button class="action-btn ${toggleClass} toggle-btn" data-public-id="${escapeHtml(page.public_id)}" data-enabled="${page.enabled}">${toggleText}</button>
                         <button class="action-btn settings-btn" data-public-id="${escapeHtml(page.public_id)}">Настройки</button>
+                        <button class="action-btn copy-link-btn" data-public-url="${escapeHtml(publicUrl)}">Скопировать ссылку</button>
                     </div>
                 </div>
                 `;
@@ -412,6 +414,9 @@
             });
             document.querySelectorAll('.settings-btn').forEach(btn => {
                 btn.addEventListener('click', () => openSettings(btn.dataset.publicId));
+            });
+            document.querySelectorAll('.copy-link-btn').forEach(btn => {
+                btn.addEventListener('click', () => copyLink(btn.dataset.publicUrl));
             });
         }
 
@@ -436,6 +441,33 @@
                     selectedResourceFilename = item.dataset.filename;
                 });
             });
+        }
+
+        function copyLink(url) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url)
+                    .then(() => showToast('Ссылка скопирована'))
+                    .catch(() => fallbackCopy(url));
+            } else {
+                fallbackCopy(url);
+            }
+        }
+
+        function fallbackCopy(url) {
+            const textArea = document.createElement('textarea');
+            textArea.value = url;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Ссылка скопирована');
+            } catch (e) {
+                showToast('Не удалось скопировать ссылку');
+            } finally {
+                document.body.removeChild(textArea);
+            }
         }
 
         async function addPublicPage() {
