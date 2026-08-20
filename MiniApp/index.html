@@ -32,18 +32,18 @@
         }
         .header {
             background: var(--tg-theme-header-bg-color); padding: 10px 16px;
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex; align-items: center; justify-content: center;
             border-bottom: 0.5px solid rgba(255,255,255,0.08); flex-shrink: 0;
-        }
-        .header h1 {
-            font-size: 18px; font-weight: 600;
-            margin-right: auto;
         }
         .nav-buttons {
             display: flex;
             gap: 8px;
         }
         .nav-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             background: rgba(255,255,255,0.06);
             border: 1px solid rgba(255,255,255,0.08);
             color: var(--tg-theme-text-color);
@@ -53,6 +53,10 @@
             cursor: pointer;
             text-decoration: none;
             transition: background 0.2s, border-color 0.2s;
+            line-height: 1.2;
+            gap: 2px;
+            white-space: normal;
+            text-align: center;
         }
         .nav-btn.active {
             background: var(--tg-theme-button-color);
@@ -187,6 +191,7 @@
             cursor: pointer;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             z-index: 50;
+            line-height: 1;
         }
         .fab:active {
             transform: scale(0.95);
@@ -195,10 +200,15 @@
 </head>
 <body>
     <div class="header">
-        <h1>Мониторинг</h1>
         <div class="nav-buttons">
-            <a class="nav-btn" id="publicPagesBtn" href="https://voidwaifu.github.io/uptime-monitoring/MiniApp/public">Публичные страницы</a>
-            <button class="nav-btn active" id="myServicesBtn">Мои сервисы</button>
+            <a class="nav-btn" id="publicPagesBtn" href="https://voidwaifu.github.io/uptime-monitoring/MiniApp/public">
+                <span>Публичные</span>
+                <span>страницы</span>
+            </a>
+            <button class="nav-btn active" id="myServicesBtn">
+                <span>Мои</span>
+                <span>сервисы</span>
+            </button>
         </div>
     </div>
     <div class="content" id="content">
