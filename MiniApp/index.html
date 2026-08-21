@@ -192,6 +192,47 @@
         }
         .latency-text { font-size: 13px; color: var(--tg-theme-hint-color); margin-top: 0; }
 
+        /* Стили для графиков в статистике */
+        .chart-block {
+            margin-top: 1rem;
+        }
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 60px;
+            margin-top: 0.5rem;
+            padding: 6px 10px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+            overflow-x: auto;
+        }
+        .chart-bar {
+            flex: 1;
+            min-width: 4px;
+            background: var(--success-color);
+            border-radius: 2px 2px 1px 1px;
+            min-height: 2px;
+            transition: height 0.5s ease;
+            opacity: 0.9;
+        }
+        .chart-bar.offline {
+            background: var(--danger-color);
+        }
+        .chart-bar.empty {
+            background: transparent;
+            border: 1px dashed rgba(255,255,255,0.1);
+            height: 2px;
+            opacity: 0.5;
+        }
+        .chart-label {
+            text-align: center;
+            color: var(--tg-theme-hint-color);
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+
         .fab {
             position: fixed;
             bottom: 20px;
@@ -703,6 +744,55 @@
             }
         }
 
+        // Функция отрисовки графика
+        function renderChart(blockId, barsId, historyArray) {
+            const block = document.getElementById(blockId);
+            const barsContainer = document.getElementById(barsId);
+            if (!block || !barsContainer) return;
+
+            // Если данных нет — скрываем блок
+            if (!historyArray || !Array.isArray(historyArray) || historyArray.length === 0) {
+                block.style.display = 'none';
+                return;
+            }
+
+            block.style.display = 'block';
+            barsContainer.innerHTML = '';
+
+            // Находим максимальное количество проверок для масштабирования высоты
+            let maxCount = 0;
+            historyArray.forEach(item => {
+                const count = item?.count || 0;
+                if (count > maxCount) maxCount = count;
+            });
+
+            historyArray.forEach(item => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+
+                const count = item?.count || 0;
+                const status = item?.status; // 'online', 'offline', 'empty'
+
+                if (status === 'offline') {
+                    bar.classList.add('offline');
+                } else if (status === 'online') {
+                    // остаётся зелёным (класс по умолчанию)
+                } else {
+                    bar.classList.add('empty');
+                }
+
+                // Высота столбика зависит от количества проверок
+                if (maxCount > 0 && count > 0) {
+                    const heightPercent = Math.max(10, (count / maxCount) * 100);
+                    bar.style.height = `${heightPercent}%`;
+                } else {
+                    bar.style.height = '2px';
+                }
+
+                barsContainer.appendChild(bar);
+            });
+        }
+
         async function showStats(resourceId) {
             try {
                 const stats = await apiCall('/api/resource/stats', { id: resourceId });
@@ -722,9 +812,23 @@
                     <div class="stats-row"><span class="stats-label">Онлайн за месяц</span><span class="stats-value">${stats.last_month.online}</span></div>
                     <div class="stats-row"><span class="stats-label">Офлайн за месяц</span><span class="stats-value">${stats.last_month.offline}</span></div>
                     <div class="stats-row"><span class="stats-label">Uptime месяц</span><span class="stats-value">${stats.last_month.uptime_percent}%</span></div>
+                    <!-- Разделитель и графики -->
+                    <div class="stats-divider"></div>
+                    <div class="chart-block" id="chart24hBlock" style="display:none;">
+                        <div class="chart-label">История за 24 часа</div>
+                        <div class="chart-container" id="chartBars24h"></div>
+                    </div>
+                    <div class="chart-block" id="chartMonthBlock" style="display:none;">
+                        <div class="chart-label">История за месяц</div>
+                        <div class="chart-container" id="chartBarsMonth"></div>
+                    </div>
                 `;
                 statsContent.innerHTML = html;
                 statsModal.classList.add('active');
+
+                // Отрисовка графиков
+                renderChart('chart24hBlock', 'chartBars24h', stats.history_24h);
+                renderChart('chartMonthBlock', 'chartBarsMonth', stats.history_month);
             } catch (e) {
                 showToast('Ошибка: ' + e.message);
             }
