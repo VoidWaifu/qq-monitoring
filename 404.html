@@ -64,37 +64,24 @@
             text-align: center;
             margin-bottom: 2rem;
         }
-        .header-top-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: nowrap;
-            margin-bottom: 0.5rem;
-        }
         .public-title {
             font-size: 2.2rem;
             font-weight: 700;
             color: var(--public-text-primary);
-            word-break: break-word;
-            flex: 1;
-            min-width: 0;
-        }
-        .public-identifier {
-            font-size: 0.95rem;
-            color: var(--public-text-secondary);
-            background: rgba(255,255,255,0.05);
-            padding: 6px 12px;
-            border-radius: 20px;
-            white-space: nowrap;
-            flex-shrink: 0;
-            border: 1px solid rgba(255,255,255,0.1);
+            word-break: normal;
+            overflow-wrap: normal;
+            white-space: normal;
+            text-align: center;
+            margin-bottom: 0.5rem;
         }
         .public-description {
             font-size: 1.1rem;
             color: var(--public-text-secondary);
             margin-top: 0.5rem;
             white-space: pre-wrap;
+            text-align: center;
+            word-break: normal;
+            overflow-wrap: normal;
         }
         .status-row {
             display: flex; align-items: center; justify-content: center;
@@ -114,10 +101,19 @@
             border-radius: 8px; font-size: 0.95rem;
             border: 1px solid rgba(255,255,255,0.05);
         }
-        .info-label { color: var(--public-text-secondary); }
+        .info-label {
+            color: var(--public-text-secondary);
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-right: 10px;
+        }
         .info-value {
-            color: var(--public-text-primary); font-weight: 500;
-            word-break: break-all; text-align: right; margin-left: 10px;
+            color: var(--public-text-primary);
+            font-weight: 500;
+            word-break: normal;
+            overflow-wrap: normal;
+            text-align: right;
+            margin-left: 10px;
         }
         .uptime-stats {
             display: flex; flex-wrap: wrap; gap: 15px;
@@ -250,10 +246,7 @@
             <div class="container">
                 <div class="public-card">
                     <div class="public-header">
-                        <div class="header-top-row">
-                            <h1 class="public-title" id="publicTitle"></h1>
-                            <span class="public-identifier" id="publicIdentifier"></span>
-                        </div>
+                        <h1 class="public-title" id="publicTitle"></h1>
                         <p class="public-description" id="publicDescription"></p>
                     </div>
                     <div class="status-row">
@@ -290,6 +283,7 @@
         let flickerInterval = null;
         let glitchBodyInterval = null;
         let colorInterval = null;
+        let currentPublicId = null; // для seed
 
         function showLoading() {
             loadingEl.style.display = 'flex';
@@ -323,9 +317,7 @@
             document.body.classList.remove('flicker');
             document.body.style.backgroundColor = '#18222d';
 
-            // Заголовок и URL/домен в одну горизонтальную строку
             document.getElementById('publicTitle').textContent = data.title || data.identifier;
-            document.getElementById('publicIdentifier').textContent = data.identifier;
             document.getElementById('publicDescription').textContent = data.description || '';
 
             const dot = document.getElementById('statusDot');
@@ -344,7 +336,7 @@
 
             const infoContainer = document.getElementById('publicInfo');
             infoContainer.innerHTML = '';
-            // URL/домен теперь в шапке, поэтому здесь не добавляем
+            if (!data.hide_identifier) addInfoRow('URL или домен', data.identifier);
             if (!data.hide_name) addInfoRow('Название', data.name || data.identifier);
             if (data.method && !data.hide_method) addInfoRow('Метод', data.method.toUpperCase());
             if (data.allowed_codes && !data.hide_codes) addInfoRow('Допустимые коды', data.allowed_codes);
@@ -359,6 +351,8 @@
                 addUptimeBlock('Uptime месяц', data.uptime_month + '%');
             }
 
+            // Сохраняем publicId для генерации seed
+            currentPublicId = data.identifier;
             // Отрисовка графиков
             render24hChart(data);
             renderMonthChart(data);
@@ -393,38 +387,63 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
+        // Детерминированный генератор на основе seed (для воспроизводимости графика)
+        function seededRandom(seed) {
+            let s = seed;
+            return function() {
+                s = (s * 9301 + 49297) % 233280;
+                return s / 233280;
+            };
+        }
+
+        function hashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash |= 0; // Convert to 32bit integer
+            }
+            return Math.abs(hash);
+        }
+
+        // Генерация истории, если API не предоставил
+        function generateHistory(count, uptimePercent, currentStatus, seedStr) {
+            const onlineCount = Math.round(count * (uptimePercent / 100));
+            const history = new Array(count).fill(0);
+            for (let i = 0; i < onlineCount; i++) history[i] = 1;
+            // Перемешиваем детерминированно с seed
+            const rng = seededRandom(hashCode(seedStr));
+            for (let i = history.length - 1; i > 0; i--) {
+                const j = Math.floor(rng() * (i + 1));
+                [history[i], history[j]] = [history[j], history[i]];
+            }
+            // Принудительно делаем последний элемент соответствующим текущему статусу
+            history[history.length - 1] = currentStatus;
+            return history;
+        }
+
         // Функции отрисовки графиков
         function render24hChart(data) {
-            renderChart('chart24h', 'chartBars24h', data.history_24h, data.uptime_24h, 24, data.current_status);
+            renderChart('chart24h', 'chartBars24h', data.history_24h, data.uptime_24h, 24, data.current_status, '24h');
         }
 
         function renderMonthChart(data) {
-            renderChart('chartMonth', 'chartBarsMonth', data.history_month, data.uptime_month, 30, data.current_status);
+            renderChart('chartMonth', 'chartBarsMonth', data.history_month, data.uptime_month, 30, data.current_status, 'month');
         }
 
-        function renderChart(containerId, barsId, historyData, uptimePercent, count, currentStatus) {
+        function renderChart(containerId, barsId, historyData, uptimePercent, count, currentStatus, seedSuffix) {
             const container = document.getElementById(containerId);
             const barsContainer = document.getElementById(barsId);
             if (!container || !barsContainer) return;
 
             let history = Array.isArray(historyData) ? historyData : [];
 
-            // Если истории нет, но есть процент аптайма – генерируем реалистичную
+            // Если истории нет, генерируем детерминированную
             if (history.length === 0 && typeof uptimePercent !== 'undefined' && uptimePercent !== null) {
                 const percent = parseInt(uptimePercent);
-                if (!isNaN(percent)) {
-                    const onlineCount = Math.round(count * (percent / 100));
-                    history = new Array(count).fill(0);
-                    for (let i = 0; i < onlineCount; i++) history[i] = 1;
-                    // Перемешиваем (Фишер-Йетс)
-                    for (let i = history.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [history[i], history[j]] = [history[j], history[i]];
-                    }
-                    // Если известен текущий статус, делаем последний бар соответствующим ему
-                    if (typeof currentStatus !== 'undefined' && currentStatus !== null) {
-                        history[history.length - 1] = currentStatus;
-                    }
+                if (!isNaN(percent) && currentPublicId) {
+                    const seedStr = currentPublicId + '_' + seedSuffix;
+                    history = generateHistory(count, percent, currentStatus, seedStr);
                 }
             }
 
@@ -432,7 +451,7 @@
                 container.style.display = 'block';
                 barsContainer.innerHTML = '';
 
-                history.forEach((item, index) => {
+                history.forEach((item) => {
                     const bar = document.createElement('div');
                     bar.className = 'chart-bar';
 
@@ -440,14 +459,14 @@
                     if (typeof item === 'number' && item > 1) {
                         bar.style.height = `${Math.min(item, 100)}%`;
                     } 
-                    // Бинарный статус 1/true – онлайн
+                    // Бинарный статус 1/true – онлайн (100% высота)
                     else if (item === 1 || item === true) {
-                        bar.style.height = `${70 + Math.random() * 30}%`;
+                        bar.style.height = '100%';
                     } 
-                    // Офлайн
+                    // Офлайн (20% высота)
                     else {
                         bar.classList.add('offline');
-                        bar.style.height = `${10 + Math.random() * 15}%`;
+                        bar.style.height = '20%';
                     }
 
                     barsContainer.appendChild(bar);
