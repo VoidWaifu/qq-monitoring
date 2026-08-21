@@ -68,8 +68,8 @@
             font-size: 2.2rem;
             font-weight: 700;
             color: var(--public-text-primary);
-            word-break: normal;
-            overflow-wrap: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
             white-space: normal;
             text-align: center;
             margin-bottom: 0.5rem;
@@ -80,8 +80,8 @@
             margin-top: 0.5rem;
             white-space: pre-wrap;
             text-align: center;
-            word-break: normal;
-            overflow-wrap: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         .status-row {
             display: flex; align-items: center; justify-content: center;
@@ -96,7 +96,8 @@
             display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 1.5rem;
         }
         .info-row {
-            display: flex; justify-content: space-between;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            flex-wrap: wrap;
             padding: 12px 16px; background: rgba(255,255,255,0.03);
             border-radius: 8px; font-size: 0.95rem;
             border: 1px solid rgba(255,255,255,0.05);
@@ -110,8 +111,10 @@
         .info-value {
             color: var(--public-text-primary);
             font-weight: 500;
-            word-break: normal;
-            overflow-wrap: normal;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            min-width: 0;
+            flex-shrink: 1;
             text-align: right;
             margin-left: 10px;
         }
@@ -295,6 +298,22 @@
         @media (max-width:768px) {
             .container { width:100%; padding:0 10px; }
             main { padding:1.5rem 0; }
+            .public-title { font-size: 1.8rem; }
+            .public-description { font-size: 1rem; }
+            .info-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .info-label {
+                margin-right: 0;
+                margin-bottom: 4px;
+                white-space: normal;
+            }
+            .info-value {
+                text-align: left;
+                margin-left: 0;
+                width: 100%;
+            }
             .error-code { font-size:5rem; }
             .error-title { font-size:1.5rem; }
             .error-message { font-size:1rem; }
@@ -316,6 +335,7 @@
         }
         @media (max-width:480px) {
             main { padding:1rem 0; }
+            .public-title { font-size: 1.5rem; }
             .error-code { font-size:4rem; }
             .error-title { font-size:1.3rem; }
             .error-message { font-size:0.9rem; }
