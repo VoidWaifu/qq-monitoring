@@ -116,12 +116,15 @@
             margin-left: 10px;
         }
         .uptime-stats {
-            display: flex; flex-wrap: wrap; gap: 15px;
-            margin-top: 1.5rem; justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 1.5rem;
         }
         .uptime-block {
             background: rgba(255,255,255,0.03); padding: 15px 20px;
-            border-radius: 12px; text-align: center; min-width: 140px;
+            border-radius: 12px; text-align: center;
+            min-width: 0; /* позволяет блокам сжиматься */
             border: 1px solid rgba(255,255,255,0.05);
         }
         .uptime-value { font-size: 1.6rem; font-weight: 700; color: var(--public-accent); }
