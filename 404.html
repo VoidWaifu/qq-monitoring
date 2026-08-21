@@ -146,7 +146,7 @@
             flex: 1;
             background: var(--public-success);
             border-radius: 4px 4px 2px 2px;
-            min-height: 6px;
+            min-height: 2px; /* минимальная видимость */
             transition: height 0.5s ease;
             opacity: 0.9;
         }
@@ -155,7 +155,9 @@
         }
         .chart-bar.empty {
             background: transparent;
-            min-height: 0;
+            border: 1px dashed rgba(255,255,255,0.1);
+            height: 2px;
+            opacity: 0.5;
         }
         .chart-label {
             text-align: center;
@@ -354,9 +356,9 @@
                 addUptimeBlock('Uptime месяц', data.uptime_month + '%');
             }
 
-            // Отрисовка графиков
-            render24hChart(data);
-            renderMonthChart(data);
+            // Отрисовка графиков на основе реальных данных из API
+            renderChart('chart24h', 'chartBars24h', data.history_24h);
+            renderChart('chartMonth', 'chartBarsMonth', data.history_month);
         }
 
         function addInfoRow(label, value) {
@@ -388,57 +390,52 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Функции отрисовки графиков
-        function render24hChart(data) {
-            renderChart('chart24h', 'chartBars24h', data.history_24h);
-        }
-
-        function renderMonthChart(data) {
-            renderChart('chartMonth', 'chartBarsMonth', data.history_month);
-        }
-
-        function renderChart(containerId, barsId, historyData) {
+        // Универсальная функция отрисовки графика
+        function renderChart(containerId, barsId, historyArray) {
             const container = document.getElementById(containerId);
             const barsContainer = document.getElementById(barsId);
             if (!container || !barsContainer) return;
 
-            // Если данных нет вообще или все null, скрываем график
-            const validItems = historyData ? historyData.filter(item => item !== null && item !== undefined) : [];
-            if (validItems.length === 0) {
+            // Если истории нет - скрываем блок
+            if (!historyArray || !Array.isArray(historyArray) || historyArray.length === 0) {
                 container.style.display = 'none';
                 return;
             }
 
-            // Находим максимальное количество проверок среди валидных элементов
-            let maxCount = 1;
-            validItems.forEach(item => {
-                if (item.count && item.count > maxCount) maxCount = item.count;
-            });
-
             container.style.display = 'block';
             barsContainer.innerHTML = '';
 
-            historyData.forEach(item => {
+            // Находим максимальное количество проверок для масштабирования высоты
+            let maxCount = 0;
+            historyArray.forEach(item => {
+                const count = item?.count || 0;
+                if (count > maxCount) maxCount = count;
+            });
+
+            historyArray.forEach(item => {
                 const bar = document.createElement('div');
                 bar.className = 'chart-bar';
 
-                if (item === null || item === undefined) {
-                    bar.classList.add('empty');
-                    bar.style.height = '0px';
-                    barsContainer.appendChild(bar);
-                    return;
-                }
+                const count = item?.count || 0;
+                const status = item?.status; // 'online', 'offline', 'empty'
 
-                // Определяем цвет: красный если был сбой (status=0), иначе зеленый
-                if (item.status === 0) {
+                if (status === 'offline') {
                     bar.classList.add('offline');
+                } else if (status === 'online') {
+                    // уже зеленый по умолчанию
+                } else {
+                    // пустой столбик
+                    bar.classList.add('empty');
                 }
 
-                // Высота столбика зависит от частоты запросов (количество проверок)
-                const count = item.count || 1;
-                // Используем sqrt для сглаживания разброса, минимум 10%
-                const heightPercent = (Math.sqrt(count) / Math.sqrt(maxCount)) * 90 + 10;
-                bar.style.height = heightPercent + '%';
+                // Высота зависит от количества проверок
+                if (maxCount > 0 && count > 0) {
+                    const heightPercent = Math.max(10, (count / maxCount) * 100); // минимальная высота 10%
+                    bar.style.height = `${heightPercent}%`;
+                } else {
+                    // Если нет данных или maxCount=0, пустой столбик имеет фиксированную маленькую высоту
+                    bar.style.height = '2px';
+                }
 
                 barsContainer.appendChild(bar);
             });
