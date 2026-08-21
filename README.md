@@ -4,7 +4,7 @@
 
 ## 🔗 Ссылки
 
-- **Telegram бот:** [@uptime_vw_bot](https://t.me/uptime_vw_bot)
+- **Telegram бот:** [@uptime_qq_bot](https://t.me/uptime_qq_bot)
 - **Канал автора:** [VoidWaifu](https://t.me/VoidWaifu)
 
 ## ✨ Возможности
