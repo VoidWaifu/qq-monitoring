@@ -124,13 +124,12 @@
         .uptime-block {
             background: rgba(255,255,255,0.03); padding: 15px 20px;
             border-radius: 12px; text-align: center;
-            min-width: 0; /* позволяет блокам сжиматься */
+            min-width: 0;
             border: 1px solid rgba(255,255,255,0.05);
         }
         .uptime-value { font-size: 1.6rem; font-weight: 700; color: var(--public-accent); }
         .uptime-label { font-size: 0.85rem; color: var(--public-text-secondary); }
 
-        /* Стили для графиков */
         .chart-block {
             margin-top: 2rem;
         }
@@ -149,7 +148,7 @@
             flex: 1;
             background: var(--public-success);
             border-radius: 4px 4px 2px 2px;
-            min-height: 2px; /* минимальная видимость */
+            min-height: 2px;
             transition: height 0.5s ease;
             opacity: 0.9;
         }
@@ -169,7 +168,6 @@
             margin-top: 0.5rem;
         }
 
-        /* Стили для 404 (фиолетовая) */
         .glitch-overlay { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; animation:glitch-overlay 5s infinite; mix-blend-mode:overlay; }
         .scanlines { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%); background-size:100% 4px; pointer-events:none; z-index:9998; opacity:0.4; animation:scanlines 0.3s linear infinite; }
         .noise { position:fixed; top:0; left:0; width:100%; height:100%; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E"); pointer-events:none; z-index:9997; opacity:0.2; animation:noise 0.1s infinite; }
@@ -200,6 +198,83 @@
         @keyframes scanlines { 0%{transform:translateY(0)} 100%{transform:translateY(4px)} }
         @keyframes noise { 0%{transform:translate(0,0)} 10%{transform:translate(-1%,-1%)} 20%{transform:translate(-1%,1%)} 30%{transform:translate(1%,-1%)} 40%{transform:translate(1%,1%)} 50%{transform:translate(-1%,-1%)} 60%{transform:translate(-1%,1%)} 70%{transform:translate(1%,-1%)} 80%{transform:translate(1%,1%)} 90%{transform:translate(-1%,-1%)} 100%{transform:translate(0,0)} }
         @keyframes flicker { 0%,100%{opacity:1} 1%{opacity:0.8} 2%{opacity:1} 5%{opacity:0.9} 6%{opacity:1} 50%{opacity:0.95} 51%{opacity:1} 75%{opacity:0.85} 76%{opacity:1} }
+
+        .chart-info-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--public-bg-secondary);
+            border: 1px solid var(--public-border);
+            color: var(--public-text-primary);
+            font-size: 1.4rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px var(--public-shadow);
+            transition: background 0.2s ease, transform 0.1s ease;
+            z-index: 10000;
+        }
+        .chart-info-btn:hover {
+            background: var(--public-border);
+            transform: scale(1.05);
+        }
+        .chart-info-btn:active {
+            transform: scale(0.95);
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--public-bg-secondary);
+            border: 1px solid var(--public-border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--public-text-secondary);
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        .modal-close:hover {
+            color: var(--public-text-primary);
+        }
+        .modal-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--public-text-primary);
+        }
+        .modal-content p {
+            color: var(--public-text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
         @media (max-width:768px) {
             .container { width:100%; padding:0 10px; }
             main { padding:1.5rem 0; }
@@ -211,6 +286,16 @@
             .artifact-text { font-size:14px; }
             .artifact-line { height:1px; }
             .artifact-dot { width:6px !important; height:6px !important; }
+            .chart-info-btn {
+                top: 10px;
+                right: 10px;
+                width: 36px;
+                height: 36px;
+                font-size: 1.2rem;
+            }
+            .modal-content {
+                padding: 1.5rem;
+            }
         }
         @media (max-width:480px) {
             main { padding:1rem 0; }
@@ -219,6 +304,13 @@
             .error-message { font-size:0.9rem; }
             .error-explanation { padding:1rem; margin:0 auto 1.2rem; }
             .home-link { padding:0.7rem 1.2rem; font-size:0.9rem; }
+            .chart-info-btn {
+                top: 8px;
+                right: 8px;
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
+            }
         }
         html { scroll-behavior:smooth; }
     </style>
@@ -265,13 +357,11 @@
                     <div class="public-info" id="publicInfo"></div>
                     <div class="uptime-stats" id="uptimeStats"></div>
 
-                    <!-- График за 24 часа -->
                     <div class="chart-block" id="chart24h" style="display:none;">
                         <div class="chart-label">История за 24 часа</div>
                         <div class="chart-container" id="chartBars24h"></div>
                     </div>
 
-                    <!-- График за месяц -->
                     <div class="chart-block" id="chartMonth" style="display:none;">
                         <div class="chart-label">История за месяц</div>
                         <div class="chart-container" id="chartBarsMonth"></div>
@@ -281,13 +371,25 @@
         </main>
     </div>
 
+    <button id="chartInfoBtn" class="chart-info-btn" style="display:none;" title="Информация о графиках">!</button>
+
+    <div id="chartInfoModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <h3>Как читать графики</h3>
+            <p>Высота столбика за час/день зависит от количества проверок. Зелёный цвет — отсутствие ошибок, красный — ресурс был недоступен.</p>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'https://voidwaifu.wispbyte.app/qq-monitoring';
         const loadingEl = document.getElementById('loading');
         const fallbackEl = document.getElementById('fallback404');
         const publicEl = document.getElementById('publicStatus');
+        const chartInfoBtn = document.getElementById('chartInfoBtn');
+        const chartInfoModal = document.getElementById('chartInfoModal');
+        const modalClose = document.getElementById('modalClose');
 
-        // Глобальные переменные для интервалов эффектов
         let artifactInterval = null;
         let flickerInterval = null;
         let glitchBodyInterval = null;
@@ -297,6 +399,8 @@
             loadingEl.style.display = 'flex';
             fallbackEl.style.display = 'none';
             publicEl.style.display = 'none';
+            chartInfoBtn.style.display = 'none';
+            chartInfoModal.style.display = 'none';
         }
 
         function stop404Effects() {
@@ -312,6 +416,8 @@
             loadingEl.style.display = 'none';
             fallbackEl.style.display = 'block';
             publicEl.style.display = 'none';
+            chartInfoBtn.style.display = 'none';
+            chartInfoModal.style.display = 'none';
             document.body.classList.add('flicker');
             document.body.style.backgroundColor = '#121212';
             init404Effects();
@@ -322,6 +428,8 @@
             loadingEl.style.display = 'none';
             fallbackEl.style.display = 'none';
             publicEl.style.display = 'block';
+            chartInfoBtn.style.display = 'flex';
+            chartInfoModal.style.display = 'none';
             document.body.classList.remove('flicker');
             document.body.style.backgroundColor = '#18222d';
 
@@ -359,7 +467,6 @@
                 addUptimeBlock('Uptime месяц', data.uptime_month + '%');
             }
 
-            // Отрисовка графиков на основе реальных данных из API
             renderChart('chart24h', 'chartBars24h', data.history_24h);
             renderChart('chartMonth', 'chartBarsMonth', data.history_month);
         }
@@ -393,13 +500,11 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Универсальная функция отрисовки графика
         function renderChart(containerId, barsId, historyArray) {
             const container = document.getElementById(containerId);
             const barsContainer = document.getElementById(barsId);
             if (!container || !barsContainer) return;
 
-            // Если истории нет - скрываем блок
             if (!historyArray || !Array.isArray(historyArray) || historyArray.length === 0) {
                 container.style.display = 'none';
                 return;
@@ -408,7 +513,6 @@
             container.style.display = 'block';
             barsContainer.innerHTML = '';
 
-            // Находим максимальное количество проверок для масштабирования высоты
             let maxCount = 0;
             historyArray.forEach(item => {
                 const count = item?.count || 0;
@@ -420,23 +524,19 @@
                 bar.className = 'chart-bar';
 
                 const count = item?.count || 0;
-                const status = item?.status; // 'online', 'offline', 'empty'
+                const status = item?.status;
 
                 if (status === 'offline') {
                     bar.classList.add('offline');
                 } else if (status === 'online') {
-                    // уже зеленый по умолчанию
                 } else {
-                    // пустой столбик
                     bar.classList.add('empty');
                 }
 
-                // Высота зависит от количества проверок
                 if (maxCount > 0 && count > 0) {
-                    const heightPercent = Math.max(10, (count / maxCount) * 100); // минимальная высота 10%
+                    const heightPercent = Math.max(10, (count / maxCount) * 100);
                     bar.style.height = `${heightPercent}%`;
                 } else {
-                    // Если нет данных или maxCount=0, пустой столбик имеет фиксированную маленькую высоту
                     bar.style.height = '2px';
                 }
 
@@ -572,6 +672,20 @@
                 }
             }, 3000);
         }
+
+        chartInfoBtn.addEventListener('click', function() {
+            chartInfoModal.style.display = 'flex';
+        });
+
+        modalClose.addEventListener('click', function() {
+            chartInfoModal.style.display = 'none';
+        });
+
+        chartInfoModal.addEventListener('click', function(e) {
+            if (e.target === chartInfoModal) {
+                chartInfoModal.style.display = 'none';
+            }
+        });
 
         const publicId = getPublicIdFromPath();
         if (publicId) {
