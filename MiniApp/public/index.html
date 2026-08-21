@@ -326,7 +326,7 @@
         const initData = tg.initData || "";
         let publicPages = [];
         let myResources = [];
-        let selectedResourceId = null;       // вместо selectedResourceFilename
+        let selectedResourceId = null;       // заменено с selectedResourceFilename
         let currentEditingPublicId = null;
         let deletingPublicId = null;        // для модалки удаления
 
@@ -449,6 +449,9 @@
             }
             let html = '';
             myResources.forEach(res => {
+                // Показываем только ресурсы с валидным id
+                if (res.id === undefined || res.id === null) return;
+
                 html += `<div class="resource-list-item" data-id="${escapeHtml(res.id)}">
                     <div class="resource-name">${escapeHtml(res.custom_name || res.identifier)}</div>
                     <div style="font-size:12px;color:var(--tg-theme-hint-color);">${escapeHtml(res.identifier)}</div>
@@ -493,12 +496,14 @@
         }
 
         async function addPublicPage() {
-            if (!selectedResourceId) {
+            // Проверяем, что выбран валидный числовой id
+            if (!selectedResourceId || isNaN(parseInt(selectedResourceId, 10))) {
                 showToast('Выберите ресурс');
                 return;
             }
+            const resourceId = parseInt(selectedResourceId, 10);
             try {
-                await apiCall('/api/public/add', { resource_id: selectedResourceId });
+                await apiCall('/api/public/add', { resource_id: resourceId });
                 showToast('Публичная страница добавлена');
                 closeAddPublicModal();
                 loadPublicPages();
