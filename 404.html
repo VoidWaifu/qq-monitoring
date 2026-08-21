@@ -60,14 +60,41 @@
             border: 1px solid var(--public-border);
             box-shadow: 0 8px 30px var(--public-shadow);
         }
-        .public-header { text-align: center; margin-bottom: 2rem; }
+        .public-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .header-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: nowrap;
+            margin-bottom: 0.5rem;
+        }
         .public-title {
-            font-size: 2.2rem; font-weight: 700;
-            color: var(--public-text-primary); word-break: break-word;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--public-text-primary);
+            word-break: break-word;
+            flex: 1;
+            min-width: 0;
+        }
+        .public-identifier {
+            font-size: 0.95rem;
+            color: var(--public-text-secondary);
+            background: rgba(255,255,255,0.05);
+            padding: 6px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         .public-description {
-            font-size: 1.1rem; color: var(--public-text-secondary);
-            margin-top: 0.5rem; white-space: pre-wrap;
+            font-size: 1.1rem;
+            color: var(--public-text-secondary);
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
         }
         .status-row {
             display: flex; align-items: center; justify-content: center;
@@ -223,7 +250,10 @@
             <div class="container">
                 <div class="public-card">
                     <div class="public-header">
-                        <h1 class="public-title" id="publicTitle"></h1>
+                        <div class="header-top-row">
+                            <h1 class="public-title" id="publicTitle"></h1>
+                            <span class="public-identifier" id="publicIdentifier"></span>
+                        </div>
                         <p class="public-description" id="publicDescription"></p>
                     </div>
                     <div class="status-row">
@@ -293,7 +323,9 @@
             document.body.classList.remove('flicker');
             document.body.style.backgroundColor = '#18222d';
 
+            // Заголовок и URL/домен в одну горизонтальную строку
             document.getElementById('publicTitle').textContent = data.title || data.identifier;
+            document.getElementById('publicIdentifier').textContent = data.identifier;
             document.getElementById('publicDescription').textContent = data.description || '';
 
             const dot = document.getElementById('statusDot');
@@ -312,7 +344,7 @@
 
             const infoContainer = document.getElementById('publicInfo');
             infoContainer.innerHTML = '';
-            if (!data.hide_identifier) addInfoRow('URL или домен', data.identifier);
+            // URL/домен теперь в шапке, поэтому здесь не добавляем
             if (!data.hide_name) addInfoRow('Название', data.name || data.identifier);
             if (data.method && !data.hide_method) addInfoRow('Метод', data.method.toUpperCase());
             if (data.allowed_codes && !data.hide_codes) addInfoRow('Допустимые коды', data.allowed_codes);
@@ -363,14 +395,14 @@
 
         // Функции отрисовки графиков
         function render24hChart(data) {
-            renderChart('chart24h', 'chartBars24h', data.history_24h, data.uptime_24h, 24);
+            renderChart('chart24h', 'chartBars24h', data.history_24h, data.uptime_24h, 24, data.current_status);
         }
 
         function renderMonthChart(data) {
-            renderChart('chartMonth', 'chartBarsMonth', data.history_month, data.uptime_month, 30);
+            renderChart('chartMonth', 'chartBarsMonth', data.history_month, data.uptime_month, 30, data.current_status);
         }
 
-        function renderChart(containerId, barsId, historyData, uptimePercent, count) {
+        function renderChart(containerId, barsId, historyData, uptimePercent, count, currentStatus) {
             const container = document.getElementById(containerId);
             const barsContainer = document.getElementById(barsId);
             if (!container || !barsContainer) return;
@@ -382,13 +414,16 @@
                 const percent = parseInt(uptimePercent);
                 if (!isNaN(percent)) {
                     const onlineCount = Math.round(count * (percent / 100));
-                    // Создаём массив из 0 и 1 с нужным количеством онлайн
                     history = new Array(count).fill(0);
                     for (let i = 0; i < onlineCount; i++) history[i] = 1;
                     // Перемешиваем (Фишер-Йетс)
                     for (let i = history.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [history[i], history[j]] = [history[j], history[i]];
+                    }
+                    // Если известен текущий статус, делаем последний бар соответствующим ему
+                    if (typeof currentStatus !== 'undefined' && currentStatus !== null) {
+                        history[history.length - 1] = currentStatus;
                     }
                 }
             }
@@ -397,7 +432,7 @@
                 container.style.display = 'block';
                 barsContainer.innerHTML = '';
 
-                history.forEach(item => {
+                history.forEach((item, index) => {
                     const bar = document.createElement('div');
                     bar.className = 'chart-bar';
 
