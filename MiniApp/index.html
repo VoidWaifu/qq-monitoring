@@ -355,8 +355,8 @@
 
         const initData = tg.initData || "";
         let resources = [];
-        let editingFilename = null;
-        let deletingFilename = null;
+        let editingResourceId = null;   // было editingFilename
+        let deletingResourceId = null;  // было deletingFilename
 
         const contentEl = document.getElementById('content');
         const toastEl = document.getElementById('toast');
@@ -392,7 +392,6 @@
 
         // Инициализация опций для допустимых кодов
         function initAllowedCodes() {
-            // Диапазоны
             const optgroupRange = document.createElement('optgroup');
             optgroupRange.label = 'Диапазоны';
             const ranges = ['100-199', '200-299', '300-399', '400-499', '500-599'];
@@ -404,7 +403,6 @@
             });
             allowedCodesSelect.appendChild(optgroupRange);
 
-            // Отдельные коды
             const optgroupSingle = document.createElement('optgroup');
             optgroupSingle.label = 'Отдельные коды';
             for (let i = 100; i <= 999; i++) {
@@ -464,13 +462,11 @@
         }
 
         function updateFormForType(type, isEditing = false) {
-            // Скрыть все специфичные группы
             methodGroup.style.display = 'none';
             keywordGroup.style.display = 'none';
             retryCountGroup.style.display = 'none';
             allowedCodesGroup.style.display = 'none';
 
-            // Показать в зависимости от типа
             if (type === 'http') {
                 methodGroup.style.display = 'block';
                 retryCountGroup.style.display = 'block';
@@ -480,12 +476,9 @@
             } else if (type === 'tcp') {
                 retryCountGroup.style.display = 'block';
             }
-            // для dns ничего дополнительно
 
-            // Обновить лейбл и плейсхолдер
             updateIdentifierFieldForType(type);
 
-            // Если не редактирование, сбросить значения специфичных полей
             if (!isEditing) {
                 methodSelect.value = 'get';
                 retryCountSelect.value = '0';
@@ -542,7 +535,7 @@
                 const notifyText = notifyTags.length ? notifyTags.join(', ') : '';
 
                 html += `
-                <div class="resource-card" data-filename="${escapeHtml(r.filename)}">
+                <div class="resource-card" data-id="${escapeHtml(r.id)}">
                     <div class="resource-header">
                         <div class="resource-name">${escapeHtml(displayName)}</div>
                         <div class="status-badge">
@@ -557,10 +550,10 @@
                         ${notifyText ? `<span class="info-tag">Уведомления: ${notifyText}</span>` : ''}
                     </div>
                     <div class="resource-actions">
-                        <button class="action-btn check-now-btn" data-filename="${escapeHtml(r.filename)}">Проверить</button>
-                        <button class="action-btn stats-btn" data-filename="${escapeHtml(r.filename)}">Статистика</button>
-                        <button class="action-btn edit-btn" data-filename="${escapeHtml(r.filename)}">Изменить</button>
-                        <button class="action-btn danger delete-btn" data-filename="${escapeHtml(r.filename)}">Удалить</button>
+                        <button class="action-btn check-now-btn" data-id="${escapeHtml(r.id)}">Проверить</button>
+                        <button class="action-btn stats-btn" data-id="${escapeHtml(r.id)}">Статистика</button>
+                        <button class="action-btn edit-btn" data-id="${escapeHtml(r.id)}">Изменить</button>
+                        <button class="action-btn danger delete-btn" data-id="${escapeHtml(r.id)}">Удалить</button>
                     </div>
                 </div>
                 `;
@@ -568,21 +561,21 @@
             contentEl.innerHTML = html;
 
             document.querySelectorAll('.check-now-btn').forEach(btn => {
-                btn.addEventListener('click', () => checkNow(btn.dataset.filename));
+                btn.addEventListener('click', () => checkNow(btn.dataset.id));
             });
             document.querySelectorAll('.stats-btn').forEach(btn => {
-                btn.addEventListener('click', () => showStats(btn.dataset.filename));
+                btn.addEventListener('click', () => showStats(btn.dataset.id));
             });
             document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', () => openEditModal(btn.dataset.filename));
+                btn.addEventListener('click', () => openEditModal(btn.dataset.id));
             });
             document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', () => openDeleteModal(btn.dataset.filename));
+                btn.addEventListener('click', () => openDeleteModal(btn.dataset.id));
             });
         }
 
         function openAddModal() {
-            editingFilename = null;
+            editingResourceId = null;
             modalTitle.textContent = 'Добавить ресурс';
             checkTypeSelect.disabled = false;
             checkTypeSelect.value = 'http';
@@ -596,10 +589,10 @@
             resourceModal.classList.add('active');
         }
 
-        function openEditModal(filename) {
-            const resource = resources.find(r => r.filename === filename);
+        function openEditModal(resourceId) {
+            const resource = resources.find(r => String(r.id) === String(resourceId));
             if (!resource) return;
-            editingFilename = filename;
+            editingResourceId = resourceId;
             modalTitle.textContent = 'Редактировать ресурс';
             checkTypeSelect.disabled = true;
             checkTypeSelect.value = resource.check_type || 'http';
@@ -611,7 +604,6 @@
             notifyDownCheckbox.checked = !!resource.notify_down;
             notifyUpCheckbox.checked = !!resource.notify_up;
 
-            // Установить специфичные поля из данных ресурса (если есть)
             if (resource.method) {
                 methodSelect.value = resource.method;
             } else {
@@ -653,7 +645,6 @@
                 return;
             }
 
-            // Собрать дополнительные параметры в зависимости от типа
             const extra = {};
             if (check_type === 'http') {
                 extra.method = methodSelect.value;
@@ -668,7 +659,6 @@
             } else if (check_type === 'tcp') {
                 extra.retry_count = parseInt(retryCountSelect.value, 10);
             }
-            // для dns ничего дополнительно
 
             const payload = {
                 identifier,
@@ -681,9 +671,9 @@
             };
 
             try {
-                if (editingFilename) {
+                if (editingResourceId !== null) {
                     await apiCall('/api/resources/update', {
-                        filename: editingFilename,
+                        id: editingResourceId,
                         ...payload
                     });
                     showToast('Ресурс обновлён');
@@ -698,9 +688,9 @@
             }
         }
 
-        async function checkNow(filename) {
+        async function checkNow(resourceId) {
             try {
-                const result = await apiCall('/api/resource/check_now', { filename });
+                const result = await apiCall('/api/resource/check_now', { id: resourceId });
                 const labels = getStatusLabels();
                 const status = result.success ? labels.online : labels.offline;
                 const latency = result.latency_ms !== undefined ? ` (${result.latency_ms} мс)` : '';
@@ -711,9 +701,9 @@
             }
         }
 
-        async function showStats(filename) {
+        async function showStats(resourceId) {
             try {
-                const stats = await apiCall('/api/resource/stats', { filename });
+                const stats = await apiCall('/api/resource/stats', { id: resourceId });
                 const labels = getStatusLabels();
                 const current = stats.current_status === 1 ? labels.online : stats.current_status === 0 ? labels.offline : labels.unknown;
                 const lastCheck = stats.last_check_time || '—';
@@ -736,22 +726,22 @@
             }
         }
 
-        function openDeleteModal(filename) {
-            const resource = resources.find(r => r.filename === filename);
+        function openDeleteModal(resourceId) {
+            const resource = resources.find(r => String(r.id) === String(resourceId));
             if (!resource) return;
-            deletingFilename = filename;
+            deletingResourceId = resourceId;
             const displayName = resource.custom_name || resource.identifier;
             deleteConfirmText.textContent = `Вы уверены, что хотите удалить "${displayName}"? Все данные мониторинга будут удалены.`;
             deleteModal.classList.add('active');
         }
 
         async function confirmDelete() {
-            if (!deletingFilename) return;
+            if (deletingResourceId === null) return;
             try {
-                await apiCall('/api/resources/delete', { filename: deletingFilename });
+                await apiCall('/api/resources/delete', { id: deletingResourceId });
                 showToast('Ресурс удалён');
                 deleteModal.classList.remove('active');
-                deletingFilename = null;
+                deletingResourceId = null;
                 loadResources();
             } catch (e) {
                 showToast('Ошибка: ' + e.message);
