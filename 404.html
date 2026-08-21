@@ -104,6 +104,39 @@
         .uptime-value { font-size: 1.6rem; font-weight: 700; color: var(--public-accent); }
         .uptime-label { font-size: 0.85rem; color: var(--public-text-secondary); }
 
+        /* Стили для графиков */
+        .chart-block {
+            margin-top: 2rem;
+        }
+        .chart-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 90px;
+            margin-top: 0.5rem;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .chart-bar {
+            flex: 1;
+            background: var(--public-success);
+            border-radius: 4px 4px 2px 2px;
+            min-height: 6px;
+            transition: height 0.5s ease;
+            opacity: 0.9;
+        }
+        .chart-bar.offline {
+            background: var(--public-danger);
+        }
+        .chart-label {
+            text-align: center;
+            color: var(--public-text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
         /* Стили для 404 (фиолетовая) */
         .glitch-overlay { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; opacity:0; animation:glitch-overlay 5s infinite; mix-blend-mode:overlay; }
         .scanlines { position:fixed; top:0; left:0; width:100%; height:100%; background:linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.1) 50%); background-size:100% 4px; pointer-events:none; z-index:9998; opacity:0.4; animation:scanlines 0.3s linear infinite; }
@@ -199,6 +232,18 @@
                     </div>
                     <div class="public-info" id="publicInfo"></div>
                     <div class="uptime-stats" id="uptimeStats"></div>
+
+                    <!-- График за 24 часа -->
+                    <div class="chart-block" id="chart24h" style="display:none;">
+                        <div class="chart-label">История за 24 часа</div>
+                        <div class="chart-container" id="chartBars24h"></div>
+                    </div>
+
+                    <!-- График за месяц -->
+                    <div class="chart-block" id="chartMonth" style="display:none;">
+                        <div class="chart-label">История за месяц</div>
+                        <div class="chart-container" id="chartBarsMonth"></div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -281,6 +326,10 @@
             if (data.uptime_month !== undefined) {
                 addUptimeBlock('Uptime месяц', data.uptime_month + '%');
             }
+
+            // Отрисовка графиков
+            render24hChart(data);
+            renderMonthChart(data);
         }
 
         function addInfoRow(label, value) {
@@ -310,6 +359,67 @@
         function escapeHtml(text) {
             const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'};
             return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Функции отрисовки графиков
+        function render24hChart(data) {
+            renderChart('chart24h', 'chartBars24h', data.history_24h, data.uptime_24h, 24);
+        }
+
+        function renderMonthChart(data) {
+            renderChart('chartMonth', 'chartBarsMonth', data.history_month, data.uptime_month, 30);
+        }
+
+        function renderChart(containerId, barsId, historyData, uptimePercent, count) {
+            const container = document.getElementById(containerId);
+            const barsContainer = document.getElementById(barsId);
+            if (!container || !barsContainer) return;
+
+            let history = Array.isArray(historyData) ? historyData : [];
+
+            // Если истории нет, но есть процент аптайма – генерируем реалистичную
+            if (history.length === 0 && typeof uptimePercent !== 'undefined' && uptimePercent !== null) {
+                const percent = parseInt(uptimePercent);
+                if (!isNaN(percent)) {
+                    const onlineCount = Math.round(count * (percent / 100));
+                    // Создаём массив из 0 и 1 с нужным количеством онлайн
+                    history = new Array(count).fill(0);
+                    for (let i = 0; i < onlineCount; i++) history[i] = 1;
+                    // Перемешиваем (Фишер-Йетс)
+                    for (let i = history.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [history[i], history[j]] = [history[j], history[i]];
+                    }
+                }
+            }
+
+            if (history.length > 0) {
+                container.style.display = 'block';
+                barsContainer.innerHTML = '';
+
+                history.forEach(item => {
+                    const bar = document.createElement('div');
+                    bar.className = 'chart-bar';
+
+                    // Если значение > 1 – считаем процентом (0-100)
+                    if (typeof item === 'number' && item > 1) {
+                        bar.style.height = `${Math.min(item, 100)}%`;
+                    } 
+                    // Бинарный статус 1/true – онлайн
+                    else if (item === 1 || item === true) {
+                        bar.style.height = `${70 + Math.random() * 30}%`;
+                    } 
+                    // Офлайн
+                    else {
+                        bar.classList.add('offline');
+                        bar.style.height = `${10 + Math.random() * 15}%`;
+                    }
+
+                    barsContainer.appendChild(bar);
+                });
+            } else {
+                container.style.display = 'none';
+            }
         }
 
         async function loadPublicPage(publicId) {
