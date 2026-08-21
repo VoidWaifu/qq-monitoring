@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Quantifier Monitoring — Мониторинг доступности сервисов</title>
+    <meta name="description" content="Telegram Mini App для мониторинга доступности ваших сервисов. HTTP(s), TCP, DNS проверки, уведомления, статистика аптайма и публичные страницы.">
+    <style>
+        :root {
+            --bg-primary: #0f1419;
+            --bg-secondary: #1c2733;
+            --bg-card: #1a242e;
+            --text-primary: #ffffff;
+            --text-secondary: #a1aab3;
+            --accent: #2ea6ff;
+            --accent-hover: #1d8fe0;
+            --accent-glow: rgba(46, 166, 255, 0.3);
+            --success: #4caf50;
+            --danger: #f44336;
+            --warning: #ff9800;
+            --border: #2c3a45;
+            --shadow: 0 8px 30px rgba(0,0,0,0.3);
+            --radius: 16px;
+            --transition: 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        a:hover {
+            color: var(--accent-hover);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .site-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 20, 25, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            z-index: 1000;
+            padding: 12px 0;
+            transition: background var(--transition);
+        }
+
+        .site-header.scrolled {
+            background: rgba(15, 20, 25, 0.95);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color var(--transition);
+            white-space: nowrap;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: background var(--transition), transform 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .hero {
+            position: relative;
+            padding: 140px 0 80px;
+            background: radial-gradient(ellipse at 20% 50%, rgba(46,166,255,0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(187,134,252,0.05) 0%, transparent 50%);
+            overflow: hidden;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, #c0d0e0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .hero-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hero-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 30px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: var(--shadow);
+            transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
+            transition: transform 0.5s ease;
+        }
+
+        .hero-card:hover {
+            transform: perspective(1000px) rotateY(0deg) rotateX(0deg);
+        }
+
+        .hero-card .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .hero-card .resource-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .hero-card .badge {
+            background: rgba(76,175,80,0.2);
+            color: var(--success);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hero-card .badge .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76,175,80,0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(76,175,80,0); }
+            100% { box-shadow: 0 0 0 0 rgba(76,175,80,0); }
+        }
+
+        .hero-card .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .hero-card .metric {
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .hero-card .metric-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .hero-card .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .hero-card .divider {
+            border-top: 1px solid var(--border);
+            margin: 15px 0;
+        }
+
+        .hero-card .uptime-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 40px;
+            margin-top: 10px;
+        }
+
+        .hero-card .uptime-bars span {
+            flex: 1;
+            background: var(--success);
+            border-radius: 2px;
+            opacity: 0.7;
+            transition: height 0.3s;
+        }
+
+        .hero-card .uptime-bars span:nth-child(odd) {
+            opacity: 0.5;
+        }
+
+        section {
+            padding: 80px 0;
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 15px;
+            letter-spacing: -0.5px;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 50px;
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .check-type-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .check-type-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: background var(--transition);
+        }
+
+        .check-type-item:hover {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .check-type-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .check-type-item h4 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .check-type-item p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .public-section {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 40px;
+            margin-top: 40px;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .public-section h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+
+        .public-section p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .public-visual {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            border: 1px solid var(--border);
+            word-break: break-all;
+        }
+
+        .public-visual .url {
+            color: var(--accent);
+        }
+
+        .cta-section {
+            text-align: center;
+            padding: 80px 0;
+            background: radial-gradient(ellipse at center, rgba(46,166,255,0.05) 0%, transparent 70%);
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .site-footer {
+            background: #0a0e12;
+            border-top: 1px solid var(--border);
+            padding: 40px 0 20px;
+            margin-top: 60px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .footer-col h4 {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .footer-col a {
+            display: block;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            transition: color var(--transition);
+        }
+
+        .footer-col a:hover {
+            color: var(--accent);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .footer-bottom a {
+            color: var(--accent);
+        }
+
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 992px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            .hero-text p {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .hero-buttons {
+                justify-content: center;
+            }
+            .hero-card {
+                max-width: 100%;
+                transform: none;
+            }
+            .public-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .site-header {
+                padding: 10px 0;
+            }
+            .header-inner {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+            .nav-links {
+                gap: 10px;
+                overflow-x: auto;
+                width: 100%;
+                justify-content: center;
+                padding-bottom: 5px;
+            }
+            .nav-links a {
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+            .hero {
+                padding: 120px 0 60px;
+            }
+            section {
+                padding: 60px 0;
+            }
+            .section-title {
+                font-size: 1.8rem;
+            }
+            .public-section {
+                padding: 20px;
+            }
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-text h1 {
+                font-size: 2.2rem;
+            }
+            .hero-text p {
+                font-size: 1rem;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            .check-type-list {
+                grid-template-columns: 1fr;
+            }
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+        <a href="#" class="logo">
+            <span class="logo-icon">📡</span>
+            <span>QQ Monitoring</span>
+        </a>
+        <nav class="nav-links">
+            <a href="#features">Возможности</a>
+            <a href="#check-types">Типы проверок</a>
+            <a href="#public">Публичные страницы</a>
+            <a href="#start">Начать</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <section class="hero" id="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1>Мониторинг доступности ваших сервисов</h1>
+                <p>Telegram Mini App для отслеживания статуса сайтов, API, TCP-портов и DNS. Уведомления о сбоях и статистика аптайма прямо в Telegram.</p>
+                <div class="hero-buttons">
+                    <a href="https://t.me/uptime_vw_bot" class="btn" target="_blank">
+                        🚀 Открыть бота
+                    </a>
+                    <a href="https://github.com/VoidWaifu/qq-monitoring" class="btn btn-outline" target="_blank">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                        GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-card">
+                    <div class="status-row">
+                        <span class="resource-name">example.com</span>
+                        <span class="badge"><span class="dot"></span> Онлайн</span>
+                    </div>
+                    <div class="metric-grid">
+                        <div class="metric">
+                            <div class="metric-value">99.98%</div>
+                            <div class="metric-label">Uptime 24ч</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-value">99.95%</div>
+                            <div class="metric-label">Uptime месяц</div>
+                        </div>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="uptime-bars">
+                        <span style="height: 30%"></span>
+                        <span style="height: 60%"></span>
+                        <span style="height: 40%"></span>
+                        <span style="height: 80%"></span>
+                        <span style="height: 70%"></span>
+                        <span style="height: 90%"></span>
+                        <span style="height: 50%"></span>
+                        <span style="height: 100%"></span>
+                        <span style="height: 85%"></span>
+                        <span style="height: 75%"></span>
+                        <span style="height: 95%"></span>
+                        <span style="height: 55%"></span>
+                        <span style="height: 65%"></span>
+                        <span style="height: 80%"></span>
+                        <span style="height: 40%"></span>
+                    </div>
+                    <p style="text-align:center; color:var(--text-secondary); font-size:0.85rem; margin-top:10px;">История проверок за 24 часа</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="container">
+            <h2 class="section-title fade-in">Возможности</h2>
+            <p class="section-subtitle fade-in">Всё необходимое для контроля доступности ваших сервисов</p>
+            <div class="features-grid">
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">🔍</span>
+                    <h3>Множество типов проверок</h3>
+                    <p>HTTP(s), поиск ключевого слова, TCP-порт, DNS-резолвинг — выберите подходящий для вашего ресурса.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">⚙️</span>
+                    <h3>Гибкая настройка</h3>
+                    <p>Частота опроса от 1 минуты до 3 часов, повторные проверки при неудаче, допустимые HTTP-коды.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">🔔</span>
+                    <h3>Уведомления в Telegram</h3>
+                    <p>Мгновенно узнавайте о падениях и восстановлениях ресурсов прямо в боте.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">📊</span>
+                    <h3>Статистика аптайма</h3>
+                    <p>Процент доступности за 24 часа и месяц, количество проверок, онлайн/офлайн периоды.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">🌐</span>
+                    <h3>Публичные страницы</h3>
+                    <p>Создавайте общедоступные ссылки для любого ресурса и делитесь статусом с кем угодно.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <span class="feature-icon">📱</span>
+                    <h3>Mini App интерфейс</h3>
+                    <p>Управляйте ресурсами прямо из Telegram — быстро и удобно с любого устройства.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="check-types">
+        <div class="container">
+            <h2 class="section-title fade-in">Поддерживаемые типы проверок</h2>
+            <p class="section-subtitle fade-in">Выберите, что именно нужно отслеживать</p>
+            <div class="check-type-list">
+                <div class="check-type-item fade-in">
+                    <div class="check-type-icon">🌍</div>
+                    <h4>HTTP(s)</h4>
+                    <p>Проверка доступности веб-сайта или API. Поддержка GET и HEAD запросов.</p>
+                </div>
+                <div class="check-type-item fade-in">
+                    <div class="check-type-icon">🔑</div>
+                    <h4>HTTP(s) + ключевое слово</h4>
+                    <p>Поиск заданного слова в HTML, CSS и JS файлах страницы.</p>
+                </div>
+                <div class="check-type-item fade-in">
+                    <div class="check-type-icon">🔌</div>
+                    <h4>TCP порт</h4>
+                    <p>Проверка открытости порта на сервере (например, 80, 443, 22).</p>
+                </div>
+                <div class="check-type-item fade-in">
+                    <div class="check-type-icon">🧬</div>
+                    <h4>DNS</h4>
+                    <p>Проверка резолвинга доменного имени в IP-адрес.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="public">
+        <div class="container">
+            <h2 class="section-title fade-in">Публичные страницы</h2>
+            <p class="section-subtitle fade-in">Делитесь статусом своих сервисов с другими</p>
+            <div class="public-section fade-in">
+                <div>
+                    <h3>Создайте публичную ссылку</h3>
+                    <p>Каждый ресурс можно опубликовать в виде отдельной страницы. Настройте видимость: заголовок, описание, скрытие идентификатора, метода, кодов и интервала проверки.</p>
+                    <p>Страница доступна по уникальной ссылке и показывает текущий статус, аптайм и другую информацию в реальном времени.</p>
+                    <a href="https://t.me/uptime_vw_bot" class="btn" target="_blank">Попробовать</a>
+                </div>
+                <div class="public-visual">
+                    <span style="color:var(--text-secondary)">Публичная страница:</span><br>
+                    <span class="url">https://voidwaifu.github.io/qq-monitoring/AbC123xYz987</span><br><br>
+                    <span style="color:var(--text-secondary)">Статус:</span> <span style="color:#4caf50;">Онлайн</span><br>
+                    <span style="color:var(--text-secondary)">Uptime 24ч:</span> 99.98%<br>
+                    <span style="color:var(--text-secondary)">Uptime месяц:</span> 99.95%
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="start" class="cta-section">
+        <div class="container">
+            <h2 class="section-title fade-in">Начните мониторить уже сегодня</h2>
+            <p class="section-subtitle fade-in">Откройте бота, добавьте ресурс и получайте уведомления о сбоях</p>
+            <div class="cta-buttons">
+                <a href="https://t.me/uptime_vw_bot" class="btn" target="_blank">
+                    🤖 @uptime_vw_bot
+                </a>
+                <a href="https://github.com/VoidWaifu/qq-monitoring" class="btn btn-outline" target="_blank">
+                    Исходный код
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h4>Проект</h4>
+                <a href="https://github.com/VoidWaifu/qq-monitoring" target="_blank">Репозиторий GitHub</a>
+                <a href="https://t.me/uptime_vw_bot" target="_blank">Telegram бот</a>
+                <a href="https://voidwaifu.github.io/qq-monitoring/MiniApp/" target="_blank">Мини-приложение</a>
+            </div>
+            <div class="footer-col">
+                <h4>Автор</h4>
+                <a href="https://voidwaifu.github.io/" target="_blank">Сайт VoidWaifu</a>
+                <a href="https://t.me/VoidWaifu" target="_blank">Канал VoidWaifu</a>
+            </div>
+            <div class="footer-col">
+                <h4>Ссылки</h4>
+                <a href="#features">Возможности</a>
+                <a href="#check-types">Типы проверок</a>
+                <a href="#public">Публичные страницы</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2026 <a href="https://voidwaifu.github.io/" target="_blank">VoidWaifu</a> · 
+            <a href="https://t.me/VoidWaifu" target="_blank">Telegram-канал</a> · 
+            <a href="https://github.com/VoidWaifu/qq-monitoring" target="_blank">GitHub</a>
+        </div>
+    </div>
+</footer>
+
+<script>
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    const header = document.getElementById('siteHeader');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+    });
+</script>
+
+</body>
+</html>
