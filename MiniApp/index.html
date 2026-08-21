@@ -183,6 +183,10 @@
         .stats-row:last-child { border-bottom: none; }
         .stats-label { color: var(--tg-theme-hint-color); }
         .stats-value { font-weight: 500; }
+        .stats-divider {
+            border-top: 1px solid rgba(255,255,255,0.12);
+            margin: 8px 0;
+        }
         .confirm-text {
             font-size: 15px; text-align: center; margin-bottom: 20px; line-height: 1.4;
         }
@@ -288,7 +292,6 @@
             <div class="form-group" id="allowedCodesGroup">
                 <label>Допустимые коды страницы</label>
                 <select id="allowedCodesSelect">
-                    <!-- Опции будут добавлены через JS -->
                 </select>
             </div>
 
@@ -355,8 +358,8 @@
 
         const initData = tg.initData || "";
         let resources = [];
-        let editingResourceId = null;   // было editingFilename
-        let deletingResourceId = null;  // было deletingFilename
+        let editingResourceId = null;
+        let deletingResourceId = null;
 
         const contentEl = document.getElementById('content');
         const toastEl = document.getElementById('toast');
@@ -390,7 +393,6 @@
         const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
-        // Инициализация опций для допустимых кодов
         function initAllowedCodes() {
             const optgroupRange = document.createElement('optgroup');
             optgroupRange.label = 'Диапазоны';
@@ -710,10 +712,12 @@
                 const html = `
                     <div class="stats-row"><span class="stats-label">Текущий статус</span><span class="stats-value">${current}</span></div>
                     <div class="stats-row"><span class="stats-label">Последняя проверка</span><span class="stats-value">${escapeHtml(lastCheck)}</span></div>
+                    <div class="stats-divider"></div>
                     <div class="stats-row"><span class="stats-label">Проверок за 24ч</span><span class="stats-value">${stats.last_24h.total}</span></div>
                     <div class="stats-row"><span class="stats-label">Онлайн за 24ч</span><span class="stats-value">${stats.last_24h.online}</span></div>
                     <div class="stats-row"><span class="stats-label">Офлайн за 24ч</span><span class="stats-value">${stats.last_24h.offline}</span></div>
                     <div class="stats-row"><span class="stats-label">Uptime 24ч</span><span class="stats-value">${stats.last_24h.uptime_percent}%</span></div>
+                    <div class="stats-divider"></div>
                     <div class="stats-row"><span class="stats-label">Проверок за месяц</span><span class="stats-value">${stats.last_month.total}</span></div>
                     <div class="stats-row"><span class="stats-label">Онлайн за месяц</span><span class="stats-value">${stats.last_month.online}</span></div>
                     <div class="stats-row"><span class="stats-label">Офлайн за месяц</span><span class="stats-value">${stats.last_month.offline}</span></div>
