@@ -275,6 +275,23 @@
             line-height: 1.6;
         }
 
+        .footer-bottom {
+            text-align: center;
+            padding: 1.5rem 0;
+            color: var(--public-text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--public-border);
+            margin-top: 2rem;
+        }
+        .footer-bottom a {
+            color: var(--public-text-secondary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .footer-bottom a:hover {
+            color: var(--public-accent);
+        }
+
         @media (max-width:768px) {
             .container { width:100%; padding:0 10px; }
             main { padding:1.5rem 0; }
@@ -369,6 +386,11 @@
                 </div>
             </div>
         </main>
+        <footer class="footer-bottom">
+            © 2026 <a href="https://voidwaifu.github.io/" target="_blank">VoidWaifu</a> · 
+            <a href="https://t.me/VoidWaifu" target="_blank">Telegram-канал</a> · 
+            <a href="https://github.com/VoidWaifu/qq-monitoring" target="_blank">GitHub</a>
+        </footer>
     </div>
 
     <button id="chartInfoBtn" class="chart-info-btn" style="display:none;" title="Информация о графиках">!</button>
@@ -377,7 +399,7 @@
         <div class="modal-content">
             <button class="modal-close" id="modalClose">&times;</button>
             <h3>Как читать графики</h3>
-            <p>Высота столбика за час/день зависит от количества проверок. Зелёный цвет — отсутствие ошибок, красный — ресурс был недоступен.</p>
+            <p>Высота столбика за час/день зависит от количества проверок.<br>Зелёный цвет — отсутствие ошибок, красный — ресурс был недоступен.</p>
         </div>
     </div>
 
