@@ -192,7 +192,6 @@
         }
         .latency-text { font-size: 13px; color: var(--tg-theme-hint-color); margin-top: 0; }
 
-        /* Стили для графиков в статистике */
         .chart-block {
             margin-top: 1rem;
         }
@@ -512,13 +511,13 @@
 
             if (type === 'http') {
                 methodGroup.style.display = 'block';
-                retryCountGroup.style.display = 'block';
                 allowedCodesGroup.style.display = 'block';
             } else if (type === 'keyword') {
                 keywordGroup.style.display = 'block';
             } else if (type === 'tcp') {
-                retryCountGroup.style.display = 'block';
             }
+
+            retryCountGroup.style.display = 'block';
 
             updateIdentifierFieldForType(type);
 
@@ -691,7 +690,6 @@
             const extra = {};
             if (check_type === 'http') {
                 extra.method = methodSelect.value;
-                extra.retry_count = parseInt(retryCountSelect.value, 10);
                 extra.allowed_codes = allowedCodesSelect.value;
             } else if (check_type === 'keyword') {
                 extra.keyword = keywordInput.value.trim();
@@ -699,9 +697,8 @@
                     showToast('Введите ключевое слово');
                     return;
                 }
-            } else if (check_type === 'tcp') {
-                extra.retry_count = parseInt(retryCountSelect.value, 10);
             }
+            extra.retry_count = parseInt(retryCountSelect.value, 10);
 
             const payload = {
                 identifier,
@@ -744,13 +741,11 @@
             }
         }
 
-        // Функция отрисовки графика
         function renderChart(blockId, barsId, historyArray) {
             const block = document.getElementById(blockId);
             const barsContainer = document.getElementById(barsId);
             if (!block || !barsContainer) return;
 
-            // Если данных нет — скрываем блок
             if (!historyArray || !Array.isArray(historyArray) || historyArray.length === 0) {
                 block.style.display = 'none';
                 return;
@@ -759,7 +754,6 @@
             block.style.display = 'block';
             barsContainer.innerHTML = '';
 
-            // Находим максимальное количество проверок для масштабирования высоты
             let maxCount = 0;
             historyArray.forEach(item => {
                 const count = item?.count || 0;
@@ -771,17 +765,15 @@
                 bar.className = 'chart-bar';
 
                 const count = item?.count || 0;
-                const status = item?.status; // 'online', 'offline', 'empty'
+                const status = item?.status;
 
                 if (status === 'offline') {
                     bar.classList.add('offline');
                 } else if (status === 'online') {
-                    // остаётся зелёным (класс по умолчанию)
                 } else {
                     bar.classList.add('empty');
                 }
 
-                // Высота столбика зависит от количества проверок
                 if (maxCount > 0 && count > 0) {
                     const heightPercent = Math.max(10, (count / maxCount) * 100);
                     bar.style.height = `${heightPercent}%`;
@@ -812,7 +804,6 @@
                     <div class="stats-row"><span class="stats-label">Онлайн за месяц</span><span class="stats-value">${stats.last_month.online}</span></div>
                     <div class="stats-row"><span class="stats-label">Офлайн за месяц</span><span class="stats-value">${stats.last_month.offline}</span></div>
                     <div class="stats-row"><span class="stats-label">Uptime месяц</span><span class="stats-value">${stats.last_month.uptime_percent}%</span></div>
-                    <!-- Разделитель и графики -->
                     <div class="stats-divider"></div>
                     <div class="chart-block" id="chart24hBlock" style="display:none;">
                         <div class="chart-label">История за 24 часа</div>
@@ -826,7 +817,6 @@
                 statsContent.innerHTML = html;
                 statsModal.classList.add('active');
 
-                // Отрисовка графиков
                 renderChart('chart24hBlock', 'chartBars24h', stats.history_24h);
                 renderChart('chartMonthBlock', 'chartBarsMonth', stats.history_month);
             } catch (e) {
