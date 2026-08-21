@@ -126,6 +126,9 @@
             color: var(--success-color);
             background: rgba(95,174,110,0.1);
         }
+        .action-btn.danger {
+            color: var(--danger-color);
+        }
         .action-btn:active { background: rgba(255,255,255,0.15); }
         .empty-state {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -195,7 +198,7 @@
         .resource-list-item:active { background: rgba(255,255,255,0.05); }
         .resource-list-item.selected {
             border-color: var(--tg-theme-button-color);
-            background: rgba(63,110,82,0.2);
+            background: rgba(46,166,255,0.2);
         }
         .fab {
             position: fixed;
@@ -299,6 +302,18 @@
         </div>
     </div>
 
+    <!-- Модалка удаления публичной страницы -->
+    <div class="modal-overlay" id="deletePublicModal">
+        <div class="modal">
+            <div class="modal-title">Удалить публичную страницу?</div>
+            <div class="confirm-text" id="deletePublicConfirmText"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" id="cancelDeletePublicBtn">Отмена</button>
+                <button class="btn-danger" id="confirmDeletePublicBtn">Удалить</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -311,13 +326,15 @@
         const initData = tg.initData || "";
         let publicPages = [];
         let myResources = [];
-        let selectedResourceFilename = null;
+        let selectedResourceId = null;       // вместо selectedResourceFilename
         let currentEditingPublicId = null;
+        let deletingPublicId = null;        // для модалки удаления
 
         const contentEl = document.getElementById('content');
         const toastEl = document.getElementById('toast');
         const addPublicModal = document.getElementById('addPublicModal');
         const publicSettingsModal = document.getElementById('publicSettingsModal');
+        const deletePublicModal = document.getElementById('deletePublicModal');
         const resourcesListContainer = document.getElementById('resourcesListContainer');
         const titleInput = document.getElementById('titleInput');
         const descriptionInput = document.getElementById('descriptionInput');
@@ -327,6 +344,7 @@
         const hideCodes = document.getElementById('hideCodes');
         const hideInterval = document.getElementById('hideInterval');
         const confirmAddPublicBtn = document.getElementById('confirmAddPublicBtn');
+        const deletePublicConfirmText = document.getElementById('deletePublicConfirmText');
 
         function showToast(msg) {
             toastEl.textContent = msg;
@@ -401,8 +419,9 @@
                     <div style="font-size:13px;color:var(--tg-theme-hint-color);margin-top:4px;">${escapeHtml(page.identifier)}</div>
                     <div class="resource-actions">
                         <button class="action-btn ${toggleClass} toggle-btn" data-public-id="${escapeHtml(page.public_id)}" data-enabled="${page.enabled}">${toggleText}</button>
-                        <button class="action-btn settings-btn" data-public-id="${escapeHtml(page.public_id)}">Настройки</button>
                         <button class="action-btn copy-link-btn" data-public-url="${escapeHtml(publicUrl)}">Скопировать</button>
+                        <button class="action-btn settings-btn" data-public-id="${escapeHtml(page.public_id)}">Настройки</button>
+                        <button class="action-btn danger delete-public-btn" data-public-id="${escapeHtml(page.public_id)}" data-title="${escapeHtml(page.title || page.identifier)}">Удалить</button>
                     </div>
                 </div>
                 `;
@@ -412,11 +431,14 @@
             document.querySelectorAll('.toggle-btn').forEach(btn => {
                 btn.addEventListener('click', () => togglePublicPage(btn.dataset.publicId, btn.dataset.enabled === 'true'));
             });
+            document.querySelectorAll('.copy-link-btn').forEach(btn => {
+                btn.addEventListener('click', () => copyLink(btn.dataset.publicUrl));
+            });
             document.querySelectorAll('.settings-btn').forEach(btn => {
                 btn.addEventListener('click', () => openSettings(btn.dataset.publicId));
             });
-            document.querySelectorAll('.copy-link-btn').forEach(btn => {
-                btn.addEventListener('click', () => copyLink(btn.dataset.publicUrl));
+            document.querySelectorAll('.delete-public-btn').forEach(btn => {
+                btn.addEventListener('click', () => openDeletePublicModal(btn.dataset.publicId, btn.dataset.title));
             });
         }
 
@@ -427,7 +449,7 @@
             }
             let html = '';
             myResources.forEach(res => {
-                html += `<div class="resource-list-item" data-filename="${escapeHtml(res.filename)}">
+                html += `<div class="resource-list-item" data-id="${escapeHtml(res.id)}">
                     <div class="resource-name">${escapeHtml(res.custom_name || res.identifier)}</div>
                     <div style="font-size:12px;color:var(--tg-theme-hint-color);">${escapeHtml(res.identifier)}</div>
                 </div>`;
@@ -438,7 +460,7 @@
                 item.addEventListener('click', () => {
                     resourcesListContainer.querySelectorAll('.resource-list-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
-                    selectedResourceFilename = item.dataset.filename;
+                    selectedResourceId = item.dataset.id;
                 });
             });
         }
@@ -471,12 +493,12 @@
         }
 
         async function addPublicPage() {
-            if (!selectedResourceFilename) {
+            if (!selectedResourceId) {
                 showToast('Выберите ресурс');
                 return;
             }
             try {
-                await apiCall('/api/public/add', { filename: selectedResourceFilename });
+                await apiCall('/api/public/add', { resource_id: selectedResourceId });
                 showToast('Публичная страница добавлена');
                 closeAddPublicModal();
                 loadPublicPages();
@@ -533,7 +555,27 @@
             }
         }
 
+        function openDeletePublicModal(publicId, title) {
+            deletingPublicId = publicId;
+            deletePublicConfirmText.textContent = `Вы уверены, что хотите удалить публичную страницу "${title}"?`;
+            deletePublicModal.classList.add('active');
+        }
+
+        async function confirmDeletePublic() {
+            if (!deletingPublicId) return;
+            try {
+                await apiCall('/api/public/delete', { public_id: deletingPublicId });
+                showToast('Публичная страница удалена');
+                deletePublicModal.classList.remove('active');
+                deletingPublicId = null;
+                loadPublicPages();
+            } catch (e) {
+                showToast('Ошибка: ' + e.message);
+            }
+        }
+
         function openAddPublicModal() {
+            selectedResourceId = null;
             addPublicModal.classList.add('active');
             loadMyResources();
         }
@@ -543,15 +585,21 @@
         function closeSettingsModal() {
             publicSettingsModal.classList.remove('active');
         }
+        function closeDeletePublicModal() {
+            deletePublicModal.classList.remove('active');
+        }
 
         document.getElementById('addPublicFab').addEventListener('click', openAddPublicModal);
         document.getElementById('cancelAddPublicBtn').addEventListener('click', closeAddPublicModal);
         confirmAddPublicBtn.addEventListener('click', addPublicPage);
         document.getElementById('cancelSettingsBtn').addEventListener('click', closeSettingsModal);
         document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+        document.getElementById('cancelDeletePublicBtn').addEventListener('click', closeDeletePublicModal);
+        document.getElementById('confirmDeletePublicBtn').addEventListener('click', confirmDeletePublic);
 
         addPublicModal.addEventListener('click', (e) => { if (e.target === addPublicModal) closeAddPublicModal(); });
         publicSettingsModal.addEventListener('click', (e) => { if (e.target === publicSettingsModal) closeSettingsModal(); });
+        deletePublicModal.addEventListener('click', (e) => { if (e.target === deletePublicModal) closeDeletePublicModal(); });
 
         loadPublicPages();
     </script>
