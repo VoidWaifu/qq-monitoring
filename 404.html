@@ -153,6 +153,10 @@
         .chart-bar.offline {
             background: var(--public-danger);
         }
+        .chart-bar.empty {
+            background: transparent;
+            min-height: 0;
+        }
         .chart-label {
             text-align: center;
             color: var(--public-text-secondary);
@@ -283,7 +287,6 @@
         let flickerInterval = null;
         let glitchBodyInterval = null;
         let colorInterval = null;
-        let currentPublicId = null; // для seed
 
         function showLoading() {
             loadingEl.style.display = 'flex';
@@ -351,8 +354,6 @@
                 addUptimeBlock('Uptime месяц', data.uptime_month + '%');
             }
 
-            // Сохраняем publicId для генерации seed
-            currentPublicId = data.identifier;
             // Отрисовка графиков
             render24hChart(data);
             renderMonthChart(data);
@@ -387,93 +388,60 @@
             return String(text).replace(/[&<>"']/g, m => map[m]);
         }
 
-        // Детерминированный генератор на основе seed (для воспроизводимости графика)
-        function seededRandom(seed) {
-            let s = seed;
-            return function() {
-                s = (s * 9301 + 49297) % 233280;
-                return s / 233280;
-            };
-        }
-
-        function hashCode(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                const char = str.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash |= 0; // Convert to 32bit integer
-            }
-            return Math.abs(hash);
-        }
-
-        // Генерация истории, если API не предоставил
-        function generateHistory(count, uptimePercent, currentStatus, seedStr) {
-            const onlineCount = Math.round(count * (uptimePercent / 100));
-            const history = new Array(count).fill(0);
-            for (let i = 0; i < onlineCount; i++) history[i] = 1;
-            // Перемешиваем детерминированно с seed
-            const rng = seededRandom(hashCode(seedStr));
-            for (let i = history.length - 1; i > 0; i--) {
-                const j = Math.floor(rng() * (i + 1));
-                [history[i], history[j]] = [history[j], history[i]];
-            }
-            // Принудительно делаем последний элемент соответствующим текущему статусу
-            history[history.length - 1] = currentStatus;
-            return history;
-        }
-
         // Функции отрисовки графиков
         function render24hChart(data) {
-            renderChart('chart24h', 'chartBars24h', data.history_24h, data.uptime_24h, 24, data.current_status, '24h');
+            renderChart('chart24h', 'chartBars24h', data.history_24h);
         }
 
         function renderMonthChart(data) {
-            renderChart('chartMonth', 'chartBarsMonth', data.history_month, data.uptime_month, 30, data.current_status, 'month');
+            renderChart('chartMonth', 'chartBarsMonth', data.history_month);
         }
 
-        function renderChart(containerId, barsId, historyData, uptimePercent, count, currentStatus, seedSuffix) {
+        function renderChart(containerId, barsId, historyData) {
             const container = document.getElementById(containerId);
             const barsContainer = document.getElementById(barsId);
             if (!container || !barsContainer) return;
 
-            let history = Array.isArray(historyData) ? historyData : [];
-
-            // Если истории нет, генерируем детерминированную
-            if (history.length === 0 && typeof uptimePercent !== 'undefined' && uptimePercent !== null) {
-                const percent = parseInt(uptimePercent);
-                if (!isNaN(percent) && currentPublicId) {
-                    const seedStr = currentPublicId + '_' + seedSuffix;
-                    history = generateHistory(count, percent, currentStatus, seedStr);
-                }
-            }
-
-            if (history.length > 0) {
-                container.style.display = 'block';
-                barsContainer.innerHTML = '';
-
-                history.forEach((item) => {
-                    const bar = document.createElement('div');
-                    bar.className = 'chart-bar';
-
-                    // Если значение > 1 – считаем процентом (0-100)
-                    if (typeof item === 'number' && item > 1) {
-                        bar.style.height = `${Math.min(item, 100)}%`;
-                    } 
-                    // Бинарный статус 1/true – онлайн (100% высота)
-                    else if (item === 1 || item === true) {
-                        bar.style.height = '100%';
-                    } 
-                    // Офлайн (20% высота)
-                    else {
-                        bar.classList.add('offline');
-                        bar.style.height = '20%';
-                    }
-
-                    barsContainer.appendChild(bar);
-                });
-            } else {
+            // Если данных нет вообще или все null, скрываем график
+            const validItems = historyData ? historyData.filter(item => item !== null && item !== undefined) : [];
+            if (validItems.length === 0) {
                 container.style.display = 'none';
+                return;
             }
+
+            // Находим максимальное количество проверок среди валидных элементов
+            let maxCount = 1;
+            validItems.forEach(item => {
+                if (item.count && item.count > maxCount) maxCount = item.count;
+            });
+
+            container.style.display = 'block';
+            barsContainer.innerHTML = '';
+
+            historyData.forEach(item => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+
+                if (item === null || item === undefined) {
+                    bar.classList.add('empty');
+                    bar.style.height = '0px';
+                    barsContainer.appendChild(bar);
+                    return;
+                }
+
+                // Определяем цвет: красный если был сбой (status=0), иначе зеленый
+                if (item.status === 0) {
+                    bar.classList.add('offline');
+                }
+
+                // Высота столбика зависит от частоты запросов (количество проверок)
+                const count = item.count || 1;
+                // Используем sqrt для сглаживания разброса, минимум 10%
+                const heightPercent = (Math.sqrt(count) / Math.sqrt(maxCount)) * 90 + 10;
+                bar.style.height = heightPercent + '%';
+
+                barsContainer.appendChild(bar);
+            });
         }
 
         async function loadPublicPage(publicId) {
